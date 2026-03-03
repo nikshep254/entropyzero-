@@ -17,7 +17,7 @@ async function callAI(systemPrompt, messages) {
         "X-Title": "entropyzero",
       },
       body: JSON.stringify({
-        model: "anthropic/claude-3.5-sonnet",
+        model: "anthropic/claude-3.5-haiku",
         max_tokens: 600,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
       }),
@@ -455,7 +455,7 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
       const reply = await callAI(ctx, [...messages, userMsg].filter(m => m.role !== "system"));
       setMessages(p => [...p, { role: "assistant", content: reply }]);
     } catch (e) {
-      setMessages(p => [...p, { role: "assistant", content: "Connection error. Check your OpenRouter key or network." }]);
+      setMessages(p => [...p, { role: "assistant", content: "Error: " + (e?.message || JSON.stringify(e)) }]);
     }
     setLoading(false);
   };

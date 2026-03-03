@@ -18,7 +18,7 @@ async function callAI(systemPrompt, messages) {
       },
       body: JSON.stringify({
         model: "anthropic/claude-3.5-haiku",
-        max_tokens: 16384,
+        max_tokens: 900,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
       }),
     });

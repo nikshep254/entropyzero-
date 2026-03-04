@@ -85,7 +85,7 @@ async function saveLastWeeklyReport(uid, data) {
 }
 
 // ── utils ────────────────────────────────────────────────────────────────────
-const uid = () => Math.random().toString(36).slice(2, 9);
+const genId = () => Math.random().toString(36).slice(2, 9);
 const today = () => new Date().toISOString().split("T")[0];
 const fmt = (n, d = 2) => parseFloat(n).toFixed(d);
 
@@ -374,7 +374,7 @@ const PhaseForm = ({ onAdd }) => {
         ))}
       </div>
       <div className="flex gap-2">{COLORS.map(c => <button key={c} onClick={() => setD(p => ({ ...p, color: c }))} className={`w-5 h-5 rounded-full border-2 transition-all ${d.color === c ? "border-[#e8e8e8] scale-110" : "border-transparent opacity-50"}`} style={{ backgroundColor: c }} />)}</div>
-      <Btn onClick={() => { if (!d.name.trim() || !d.start) return; onAdd({ ...d, id: uid() }); setD({ name: "", start: "", end: "", trend: 0, emoji: "📅", color: "#a3a3a3", desc: "" }); }} disabled={!d.name.trim() || !d.start} className={`w-full ${!d.name.trim() || !d.start ? "opacity-30" : ""}`}><Plus size={15} />Add Phase</Btn>
+      <Btn onClick={() => { if (!d.name.trim() || !d.start) return; onAdd({ ...d, id: genId() }); setD({ name: "", start: "", end: "", trend: 0, emoji: "📅", color: "#a3a3a3", desc: "" }); }} disabled={!d.name.trim() || !d.start} className={`w-full ${!d.name.trim() || !d.start ? "opacity-30" : ""}`}><Plus size={15} />Add Phase</Btn>
     </div>
   );
 };
@@ -395,7 +395,7 @@ const Onboarding = ({ onComplete }) => {
   if (step === 2) return (<Shell step={2} onNext={n} onBack={b} nextDisabled={!loc.country}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">Country & Currency</h2><div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">{Object.keys(CURRENCIES).map(c => <button key={c} onClick={() => setLoc({ country: c })} className={`py-3 px-4 rounded-xl text-sm text-left border transition-all ${loc.country === c ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333] hover:text-[#bbb]"}`}><span className="block font-medium">{c}</span><span className={`text-xs font-mono ${loc.country === c ? "text-[#080808]/50" : "text-[#777]"}`}>{CURRENCIES[c]?.code}</span></button>)}</div></Shell>);
   if (step === 3) return (<Shell step={3} onNext={n} onBack={b} nextDisabled={!price.startPrice || price.startPrice <= 0}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">IPO Price</h2><div className="grid grid-cols-4 gap-2 mb-4">{[100, 250, 500, 1000].map(p => <button key={p} onClick={() => setPrice({ startPrice: p })} className={`py-3 rounded-xl text-sm font-semibold border transition-all ${price.startPrice === p ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{p}</button>)}</div><Input type="number" min={1} placeholder="Custom value" value={price.startPrice || ""} onChange={e => setPrice({ startPrice: parseFloat(e.target.value) })} className="w-full" /></Shell>);
   if (step === 4) return (<Shell step={4} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Life Story</h2><p className="text-[#666] text-xs mb-4">Each phase shapes your chart curve.</p><div className="space-y-2 max-h-40 overflow-y-auto mb-4">{story.phases.map(ph => <div key={ph.id} className="flex items-center gap-3 bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-2.5"><span>{ph.emoji}</span><div className="flex-1"><p className="text-sm text-[#ddd]">{ph.name}</p><p className="text-xs text-[#666]">{ph.start}→{ph.end || "now"}</p></div><button onClick={() => setStory(s => ({ ...s, phases: s.phases.filter(p => p.id !== ph.id) }))} className="text-[#777] hover:text-red-400"><X size={13} /></button></div>)}</div><PhaseForm onAdd={ph => setStory(s => ({ ...s, phases: [...s.phases, ph] }))} /></Shell>);
-  if (step === 5) return (<Shell step={5} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Habits</h2><p className="text-[#666] text-xs mb-4">These move your index daily.</p><div className="flex flex-wrap gap-2 mb-4">{DEFS.map(h => <button key={h.name} onClick={() => { if (!hab.habits.find(x => x.name === h.name)) setHab(d => ({ ...d, habits: [...d.habits, { ...h, id: uid() }] })); }} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${hab.habits.find(x => x.name === h.name) ? "border-[#555] text-[#ddd] bg-[#1a1a1a]" : "border-[#2e2e2e] text-[#666] hover:border-[#333] hover:text-[#aaa]"}`}>{h.emoji}{h.name}</button>)}</div><div className="space-y-1.5 max-h-32 overflow-y-auto mb-4">{hab.habits.map(h => <div key={h.id} className="flex items-center justify-between bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-2"><span className="text-sm text-[#ddd]">{h.emoji}{h.name}</span><div className="flex items-center gap-2"><span className={`text-xs font-mono ${h.impact >= 0 ? "text-green-400" : "text-red-400"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span><button onClick={() => setHab(d => ({ ...d, habits: d.habits.filter(x => x.id !== h.id) }))} className="text-[#777] hover:text-red-400"><X size={12} /></button></div></div>)}</div></Shell>);
+  if (step === 5) return (<Shell step={5} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Habits</h2><p className="text-[#666] text-xs mb-4">These move your index daily.</p><div className="flex flex-wrap gap-2 mb-4">{DEFS.map(h => <button key={h.name} onClick={() => { if (!hab.habits.find(x => x.name === h.name)) setHab(d => ({ ...d, habits: [...d.habits, { ...h, id: genId() }] })); }} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${hab.habits.find(x => x.name === h.name) ? "border-[#555] text-[#ddd] bg-[#1a1a1a]" : "border-[#2e2e2e] text-[#666] hover:border-[#333] hover:text-[#aaa]"}`}>{h.emoji}{h.name}</button>)}</div><div className="space-y-1.5 max-h-32 overflow-y-auto mb-4">{hab.habits.map(h => <div key={h.id} className="flex items-center justify-between bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-2"><span className="text-sm text-[#ddd]">{h.emoji}{h.name}</span><div className="flex items-center gap-2"><span className={`text-xs font-mono ${h.impact >= 0 ? "text-green-400" : "text-red-400"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span><button onClick={() => setHab(d => ({ ...d, habits: d.habits.filter(x => x.id !== h.id) }))} className="text-[#777] hover:text-red-400"><X size={12} /></button></div></div>)}</div></Shell>);
   if (step === 6) return (<Shell step={6} onNext={n} onBack={b} nextLabel="Next →"><h2 className="text-xl font-semibold text-[#e8e8e8] mb-4">Ready to Launch</h2>{[["👤 Name", prof.name], ["📈 Ticker", `$${prof.ticker || prof.name.slice(0, 4).toUpperCase()}`], ["🌍 Country", `${loc.country} · ${CURRENCIES[loc.country]?.code}`], ["💰 IPO", `${CURRENCIES[loc.country]?.symbol}${price.startPrice}`], ["🗂️ Phases", `${story.phases.length} phases`], ["✅ Habits", `${hab.habits.length} habits`]].map(([k, v]) => <div key={k} className="flex justify-between items-center bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-3 mb-2"><span className="text-sm text-[#777]">{k}</span><span className="text-sm text-[#ddd]">{v}</span></div>)}</Shell>);
 
   // Step 7: Login bento card
@@ -731,7 +731,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     if (isNaN(next)) return;
     const now = new Date(), dateStr = now.toISOString().split("T")[0];
     setChartData(p => [...p, { date: dateStr, value: parseFloat(next.toFixed(2)), timestamp: now.getTime(), mood: moodLog[dateStr] || undefined }]);
-    setOrderBook(p => [{ id: uid(), time: now.toLocaleTimeString(), date: dateStr, desc, change: safePct, newIndex: next.toFixed(2), tag }, ...p.slice(0, 99)]);
+    setOrderBook(p => [{ id: genId(), time: now.toLocaleTimeString(), date: dateStr, desc, change: safePct, newIndex: next.toFixed(2), tag }, ...p.slice(0, 99)]);
   };
 
   const filteredData = useMemo(() => {
@@ -823,7 +823,7 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
       const now = new Date();
       const titleDate = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
       setPressReleases(p => [{
-        id: uid(),
+        id: genId(),
         title: `📊 Daily Report — ${titleDate}`,
         body: report,
         type: todayChange >= 0 ? "positive" : "negative",
@@ -840,35 +840,36 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
   // Daily report is manual only - use the button in Press tab
 
   // ── Weekly AI Summary ───────────────────────────────────────────────────────
-  const generateWeeklySummary = useCallback(async (manual = false) => {
+  const generateWeeklySummary = async (manual = false) => {
     if (!uid) return;
+    setGeneratingReport(true);
     try {
       const meta = await getLastWeeklyReport(uid);
       const lastDate = meta?.date || null;
       const now = new Date();
-      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+      const dayOfWeek = now.getDay();
       const thisWeekMonday = new Date(now);
       thisWeekMonday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
       const thisWeekStr = thisWeekMonday.toISOString().split("T")[0];
 
-      if (!manual && lastDate >= thisWeekStr) return; // already done this week
+      if (!manual && lastDate >= thisWeekStr) { setGeneratingReport(false); return; }
 
       const weekAgo = new Date(now.getTime() - 7 * 86400000);
       const weekOrders = orderBook.filter(o => new Date(o.date) >= weekAgo);
-      if (weekOrders.length === 0 && !manual) return; // nothing to report
+      if (weekOrders.length === 0 && !manual) { setGeneratingReport(false); return; }
 
       const ctx = `You are entropyzero's AI analyst. Write a weekly life index performance summary.
 User: ${config.name}, Index: ${fmt(lifeIndex)}, AllTime: ${fmt(allTime)}%, Streak: ${streak}d
-This week's activity (${weekOrders.length} events): ${weekOrders.slice(0, 15).map(o => o.desc + ":" + (o.change > 0 ? "+" : "") + o.change + "%").join(", ") || "none"}
-Top skills: ${skills.slice(0, 3).map(s => s.name).join(", ") || "none"}
-Active weaknesses: ${weaknesses.slice(0, 3).map(w => w.name).join(", ") || "none"}
-Write a 4-paragraph weekly review: performance summary, what drove gains/losses, patterns noticed, focus for next week. Max 200 words. Title it with the week dates.`;
+This week: ${weekOrders.slice(0, 15).map(o => o.desc + ":" + (o.change > 0 ? "+" : "") + o.change + "%").join(", ") || "none"}
+Skills: ${skills.slice(0, 3).map(s => s.name).join(", ") || "none"}
+Weaknesses: ${weaknesses.slice(0, 3).map(w => w.name).join(", ") || "none"}
+Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focus for next week. Max 200 words.`;
 
-      const report = await callAI(ctx, [{ role: "user", content: "Generate this week's life index weekly summary." }]);
+      const report = await callAI(ctx, [{ role: "user", content: "Generate this week's summary." }]);
       const weekEnd = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       const weekStart = weekAgo.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       const pr = {
-        id: uid(),
+        id: genId(),
         title: `📅 Weekly Summary — ${weekStart} to ${weekEnd}`,
         body: report,
         type: allTime >= 0 ? "positive" : "negative",
@@ -879,18 +880,41 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
       };
       setPressReleases(p => [pr, ...p.filter(x => x.tag !== "weekly-summary" || x.date !== today())]);
       await saveLastWeeklyReport(uid, { date: thisWeekStr });
-    } catch (e) { console.error("Weekly report error:", e); }
-  }, [uid, orderBook, config, lifeIndex, allTime, streak, skills, weaknesses]);
+      setView("press");
+    } catch (e) {
+      console.error("Weekly report error:", e);
+      alert("Could not generate weekly summary: " + e.message);
+    }
+    setGeneratingReport(false);
+  };
 
-  // Auto-generate weekly summary on mount if due
+  // Auto-generate weekly summary on mount if due (once only)
+  const weeklyTriggered = useRef(false);
   useEffect(() => {
-    if (!uid || orderBook.length === 0) return;
+    if (!uid || orderBook.length === 0 || weeklyTriggered.current) return;
+    weeklyTriggered.current = true;
     const timer = setTimeout(() => generateWeeklySummary(false), 8000);
     return () => clearTimeout(timer);
-  }, [uid]);
+  }, [uid, orderBook.length]);
 
   return (
     <div className={`min-h-screen ${C.bg} text-[#e8e8e8]`}>
+
+      {/* AI Generating Overlay */}
+      {generatingReport && (
+        <div className="fixed inset-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-sm flex items-center justify-center px-6">
+          <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <div className="flex justify-center gap-1.5 mb-5">
+              {[0,1,2,3].map(i => (
+                <div key={i} className="w-2 h-2 rounded-full bg-[#e8e8e8] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+            <p className="text-[#e8e8e8] font-semibold text-sm mb-1">AI is writing your report</p>
+            <p className="text-[#666] text-xs">Analysing your life index data…</p>
+          </div>
+        </div>
+      )}
+
       {openCapsules.map(c => (
         <div key={c.id} className="fixed top-4 left-4 right-4 z-50 bg-[#1e1e1e] border border-[#333] rounded-2xl p-4 shadow-2xl">
           <p className="text-xs text-[#777] mb-1">⏰ Time Capsule Unlocked</p>
@@ -1069,7 +1093,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
               <div className="flex gap-2 flex-wrap">
                 <div className="flex gap-1">{[["positive", "🟢"], ["neutral", "⚪"], ["negative", "🔴"]].map(([v, l]) => <button key={v} onClick={() => setPrType(v)} className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${prType === v ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{l}{v}</button>)}</div>
                 <Input value={prImpact} onChange={e => setPrImpact(e.target.value)} placeholder="% impact" className="w-24 font-mono" />
-                <Btn onClick={() => { if (!prTitle.trim() || !prBody.trim()) return; const impact = prImpact ? parseFloat(prImpact) : prType === "positive" ? 3 : prType === "negative" ? -3 : 0; const now = new Date(); setPressReleases(p => [{ id: uid(), title: prTitle, body: prBody, type: prType, impact, date: now.toISOString().split("T")[0], time: now.toLocaleTimeString() }, ...p]); if (impact !== 0) execute(`📰 ${prTitle}`, impact, "press"); setPrTitle(""); setPrBody(""); setPrImpact(""); setPrType("neutral"); }} disabled={!prTitle.trim() || !prBody.trim()}><Newspaper size={15} />Publish</Btn>
+                <Btn onClick={() => { if (!prTitle.trim() || !prBody.trim()) return; const impact = prImpact ? parseFloat(prImpact) : prType === "positive" ? 3 : prType === "negative" ? -3 : 0; const now = new Date(); setPressReleases(p => [{ id: genId(), title: prTitle, body: prBody, type: prType, impact, date: now.toISOString().split("T")[0], time: now.toLocaleTimeString() }, ...p]); if (impact !== 0) execute(`📰 ${prTitle}`, impact, "press"); setPrTitle(""); setPrBody(""); setPrImpact(""); setPrType("neutral"); }} disabled={!prTitle.trim() || !prBody.trim()}><Newspaper size={15} />Publish</Btn>
               </div>
             </div>
           </Card>
@@ -1142,11 +1166,11 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
                 const impact = parseFloat(newHabit.impact) * (newHabit.type === "negative" ? -1 : 1);
                 if (isNaN(impact)) return;
                 const sector = newHabit.sector === "auto" ? classifyHabit(newHabit.name) : newHabit.sector;
-                const toAdd = [{ id: uid(), name: newHabit.name, impact, type: newHabit.type, emoji: newHabit.type === "positive" ? "✅" : "❌", sector }];
+                const toAdd = [{ id: genId(), name: newHabit.name, impact, type: newHabit.type, emoji: newHabit.type === "positive" ? "✅" : "❌", sector }];
                 if (newHabit.type === "positive") {
-                  toAdd.push({ id: uid(), name: `Skip ${newHabit.name}`, impact: -Math.abs(impact), type: "negative", emoji: "❌", sector });
+                  toAdd.push({ id: genId(), name: `Skip ${newHabit.name}`, impact: -Math.abs(impact), type: "negative", emoji: "❌", sector });
                 } else {
-                  toAdd.push({ id: uid(), name: `Avoid ${newHabit.name}`, impact: Math.abs(impact), type: "positive", emoji: "✅", sector });
+                  toAdd.push({ id: genId(), name: `Avoid ${newHabit.name}`, impact: Math.abs(impact), type: "positive", emoji: "✅", sector });
                 }
                 setHabits(p => [...p, ...toAdd]);
                 setNewHabit({ name: "", impact: "", type: "positive", sector: "auto" });
@@ -1200,7 +1224,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
                 <select value={newSkill.level} onChange={e => setNewSkill(p => ({ ...p, level: parseInt(e.target.value) }))} className="flex-1 bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-[#aaa] focus:outline-none">{SKILL_LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
                 <Input value={newSkill.developingHabit} onChange={e => setNewSkill(p => ({ ...p, developingHabit: e.target.value }))} placeholder="Developing via habit" className="flex-1" />
               </div>
-              <Btn onClick={() => { if (!newSkill.name.trim()) return; const sector = newSkill.sector === "auto" ? classifyHabit(newSkill.name) : newSkill.sector; setSkills(p => [...p, { ...newSkill, id: uid(), sector }]); execute(`💡 Asset:${newSkill.name}`, 2, "skill"); setNewSkill({ name: "", level: 0, category: "Technical", sector: "skills", developingHabit: "" }); }} className="w-full"><Plus size={15} />Add Skill</Btn>
+              <Btn onClick={() => { if (!newSkill.name.trim()) return; const sector = newSkill.sector === "auto" ? classifyHabit(newSkill.name) : newSkill.sector; setSkills(p => [...p, { ...newSkill, id: genId(), sector }]); execute(`💡 Asset:${newSkill.name}`, 2, "skill"); setNewSkill({ name: "", level: 0, category: "Technical", sector: "skills", developingHabit: "" }); }} className="w-full"><Plus size={15} />Add Skill</Btn>
             </div>
           </Card>
 
@@ -1232,7 +1256,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
                 <select value={newDebt.severity} onChange={e => setNewDebt(p => ({ ...p, severity: parseInt(e.target.value) }))} className="flex-1 bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-[#aaa] focus:outline-none">{DEBT_SEVERITY.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
                 <Input value={newDebt.plan} onChange={e => setNewDebt(p => ({ ...p, plan: e.target.value }))} placeholder="Improvement plan" className="flex-1" />
               </div>
-              <Btn variant="ghost" onClick={() => { if (!newDebt.name.trim()) return; setWeaknesses(p => [...p, { ...newDebt, id: uid() }]); execute(`⚠️ Debt:${newDebt.name}`, -(newDebt.severity + 1) * 1.5, "debt"); setNewDebt({ name: "", severity: 0, category: "Mental", plan: "" }); }} className="w-full"><Plus size={15} />Log Weakness</Btn>
+              <Btn variant="ghost" onClick={() => { if (!newDebt.name.trim()) return; setWeaknesses(p => [...p, { ...newDebt, id: genId() }]); execute(`⚠️ Debt:${newDebt.name}`, -(newDebt.severity + 1) * 1.5, "debt"); setNewDebt({ name: "", severity: 0, category: "Mental", plan: "" }); }} className="w-full"><Plus size={15} />Log Weakness</Btn>
             </div>
           </Card>
 
@@ -1253,7 +1277,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
             <div className="flex gap-2 flex-wrap border-t border-[#252525] pt-4">
               <Input value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} placeholder="Goal title" className="flex-1 min-w-32" />
               <Input type="number" value={newGoal.reward} onChange={e => setNewGoal(p => ({ ...p, reward: parseFloat(e.target.value) || 0 }))} placeholder="% reward" className="w-20 font-mono" />
-              <Btn onClick={() => { if (!newGoal.title.trim()) return; setGoals(p => [...p, { ...newGoal, id: uid(), achieved: false }]); setNewGoal({ title: "", sector: "academics", reward: 0 }); }}><Plus size={15} /></Btn>
+              <Btn onClick={() => { if (!newGoal.title.trim()) return; setGoals(p => [...p, { ...newGoal, id: genId(), achieved: false }]); setNewGoal({ title: "", sector: "academics", reward: 0 }); }}><Plus size={15} /></Btn>
             </div>
           </Card>
         </>)}
@@ -1313,7 +1337,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
               <div className="space-y-3">
                 <Textarea value={capsule.message} onChange={e => setCapsule(p => ({ ...p, message: e.target.value }))} placeholder="Dear future me…" className="w-full h-28" />
                 <Input type="date" min={today()} value={capsule.unlockDate} onChange={e => setCapsule(p => ({ ...p, unlockDate: e.target.value }))} className="w-full" />
-                <Btn onClick={() => { if (!capsule.message.trim() || !capsule.unlockDate) return; setTimeCapsules(p => [...p, { ...capsule, id: uid(), createdDate: today(), opened: false }]); setCapsule({ message: "", unlockDate: "" }); }} disabled={!capsule.message.trim() || !capsule.unlockDate} className={`w-full ${!capsule.message.trim() || !capsule.unlockDate ? "opacity-30" : ""}`}><Moon size={15} />Seal Capsule</Btn>
+                <Btn onClick={() => { if (!capsule.message.trim() || !capsule.unlockDate) return; setTimeCapsules(p => [...p, { ...capsule, id: genId(), createdDate: today(), opened: false }]); setCapsule({ message: "", unlockDate: "" }); }} disabled={!capsule.message.trim() || !capsule.unlockDate} className={`w-full ${!capsule.message.trim() || !capsule.unlockDate ? "opacity-30" : ""}`}><Moon size={15} />Seal Capsule</Btn>
               </div>
             </Card>
             {timeCapsules.map(c => (

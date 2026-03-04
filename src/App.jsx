@@ -45,16 +45,18 @@ async function callAI(systemPrompt, messages) {
 
 // ── Firestore storage helpers ───────────────────────────────────────────────
 async function loadAllData(uid) {
+  if (!uid) return null;
   try {
     const snap = await getDoc(doc(db, "users", uid, "appdata", "main"));
     return snap.exists() ? snap.data().payload : null;
-  } catch (_) { return null; }
+  } catch (e) { console.error("Load error:", e); return null; }
 }
 
 async function saveAllData(uid, data) {
+  if (!uid) return;
   try {
     await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: data });
-  } catch (_) {}
+  } catch (e) { console.error("Save error:", e); }
 }
 
 async function loadCoachHistory(uid) {
@@ -634,8 +636,11 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
 
   // Save all state to persistent storage whenever anything changes
   useEffect(() => {
-    saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
-  }, [chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
+    if (!uid) return;
+    try {
+      saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
+    } catch(e) { console.error("Save error:", e); }
+  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -789,15 +794,7 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
     setGeneratingReport(false);
   };
 
-  // Auto-generate report once per day on mount
-  useEffect(() => {
-    const todayStr = today();
-    const alreadyDone = pressReleases.some(pr => pr.tag === "daily-report" && pr.date === todayStr);
-    if (!alreadyDone && orderBook.length > 0) {
-      const timer = setTimeout(() => generateDailyReport(), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Daily report is manual only - use the button in Press tab
 
   return (
     <div className={`min-h-screen ${C.bg} text-[#e8e8e8]`}>
@@ -1353,15 +1350,16 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setLoginLoading(true);
-    try {
-      await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged handles the rest
-    } catch (e) {
-      console.error("Login error:", e.code, e.message);
-      setLoginLoading(false);
-    }
+    signInWithPopup(auth, googleProvider)
+      .then(() => {
+        // onAuthStateChanged will fire and handle navigation
+      })
+      .catch((e) => {
+        console.error("Login error:", e.code, e.message);
+        setLoginLoading(false);
+      });
   };
 
   const handleComplete = async (profile) => {

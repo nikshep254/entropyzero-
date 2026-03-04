@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
+import { auth, db, googleProvider } from "./firebase.js";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import { TrendingUp, Activity, Plus, Trash2, Send, ChevronRight, ChevronLeft, Check, X, Download, Upload, BarChart2, BookOpen, Settings, Zap, Newspaper, Star, AlertTriangle, Brain, Target, Calendar, Award, Flame, Moon, Layers, Info } from "lucide-react";
 
@@ -18,7 +21,7 @@ async function callAI(systemPrompt, messages) {
       },
       body: JSON.stringify({
         model: "anthropic/claude-3.5-haiku",
-        max_tokens: 1048,
+        max_tokens: 600,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
       }),
     });
@@ -31,7 +34,7 @@ async function callAI(systemPrompt, messages) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 16384,
+      max_tokens: 600,
       system: systemPrompt,
       messages,
     }),
@@ -40,18 +43,32 @@ async function callAI(systemPrompt, messages) {
   return d.content?.[0]?.text || "No response.";
 }
 
-// ── Persistent storage helpers ──────────────────────────────────────────────
-const STORAGE_KEY = "entropyzero-v3";
-
-async function loadAllData() {
+// ── Firestore storage helpers ───────────────────────────────────────────────
+async function loadAllData(uid) {
   try {
-    const result = await window.storage.get(STORAGE_KEY);
-    return result ? JSON.parse(result.value) : null;
+    const snap = await getDoc(doc(db, "users", uid, "appdata", "main"));
+    return snap.exists() ? snap.data().payload : null;
   } catch (_) { return null; }
 }
 
-async function saveAllData(data) {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(data)); } catch (_) {}
+async function saveAllData(uid, data) {
+  try {
+    await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: data });
+  } catch (_) {}
+}
+
+async function loadCoachHistory(uid) {
+  try {
+    const q = query(collection(db, "users", uid, "coachHistory"), orderBy("ts", "asc"));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data().msg);
+  } catch (_) { return []; }
+}
+
+async function saveCoachMessage(uid, msg) {
+  try {
+    await addDoc(collection(db, "users", uid, "coachHistory"), { msg, ts: Date.now() });
+  } catch (_) {}
 }
 
 // ── utils ────────────────────────────────────────────────────────────────────
@@ -342,7 +359,51 @@ const Onboarding = ({ onComplete }) => {
   if (step === 3) return (<Shell step={3} onNext={n} onBack={b} nextDisabled={!price.startPrice || price.startPrice <= 0}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">IPO Price</h2><div className="grid grid-cols-4 gap-2 mb-4">{[100, 250, 500, 1000].map(p => <button key={p} onClick={() => setPrice({ startPrice: p })} className={`py-3 rounded-xl text-sm font-semibold border transition-all ${price.startPrice === p ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#0e0e0e] text-[#666] border-[#1e1e1e] hover:border-[#333]"}`}>{p}</button>)}</div><Input type="number" min={1} placeholder="Custom value" value={price.startPrice || ""} onChange={e => setPrice({ startPrice: parseFloat(e.target.value) })} className="w-full" /></Shell>);
   if (step === 4) return (<Shell step={4} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Life Story</h2><p className="text-[#444] text-xs mb-4">Each phase shapes your chart curve.</p><div className="space-y-2 max-h-40 overflow-y-auto mb-4">{story.phases.map(ph => <div key={ph.id} className="flex items-center gap-3 bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-4 py-2.5"><span>{ph.emoji}</span><div className="flex-1"><p className="text-sm text-[#ccc]">{ph.name}</p><p className="text-xs text-[#444]">{ph.start}→{ph.end || "now"}</p></div><button onClick={() => setStory(s => ({ ...s, phases: s.phases.filter(p => p.id !== ph.id) }))} className="text-[#333] hover:text-red-400"><X size={13} /></button></div>)}</div><PhaseForm onAdd={ph => setStory(s => ({ ...s, phases: [...s.phases, ph] }))} /></Shell>);
   if (step === 5) return (<Shell step={5} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Habits</h2><p className="text-[#444] text-xs mb-4">These move your index daily.</p><div className="flex flex-wrap gap-2 mb-4">{DEFS.map(h => <button key={h.name} onClick={() => { if (!hab.habits.find(x => x.name === h.name)) setHab(d => ({ ...d, habits: [...d.habits, { ...h, id: uid() }] })); }} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${hab.habits.find(x => x.name === h.name) ? "border-[#555] text-[#ccc] bg-[#1a1a1a]" : "border-[#1e1e1e] text-[#444] hover:border-[#333] hover:text-[#888]"}`}>{h.emoji}{h.name}</button>)}</div><div className="space-y-1.5 max-h-32 overflow-y-auto mb-4">{hab.habits.map(h => <div key={h.id} className="flex items-center justify-between bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-4 py-2"><span className="text-sm text-[#ccc]">{h.emoji}{h.name}</span><div className="flex items-center gap-2"><span className={`text-xs font-mono ${h.impact >= 0 ? "text-green-400" : "text-red-400"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span><button onClick={() => setHab(d => ({ ...d, habits: d.habits.filter(x => x.id !== h.id) }))} className="text-[#333] hover:text-red-400"><X size={12} /></button></div></div>)}</div></Shell>);
-  return (<Shell step={6} onNext={finish} onBack={b} nextLabel="🚀 Launch"><h2 className="text-xl font-semibold text-[#e8e8e8] mb-4">Ready to Launch</h2>{[["👤 Name", prof.name], ["📈 Ticker", `$${prof.ticker || prof.name.slice(0, 4).toUpperCase()}`], ["🌍 Country", `${loc.country} · ${CURRENCIES[loc.country]?.code}`], ["💰 IPO", `${CURRENCIES[loc.country]?.symbol}${price.startPrice}`], ["🗂️ Phases", `${story.phases.length} phases`], ["✅ Habits", `${hab.habits.length} habits`]].map(([k, v]) => <div key={k} className="flex justify-between items-center bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-4 py-3 mb-2"><span className="text-sm text-[#555]">{k}</span><span className="text-sm text-[#ccc]">{v}</span></div>)}</Shell>);
+  if (step === 6) return (<Shell step={6} onNext={n} onBack={b} nextLabel="Next →"><h2 className="text-xl font-semibold text-[#e8e8e8] mb-4">Ready to Launch</h2>{[["👤 Name", prof.name], ["📈 Ticker", `$${prof.ticker || prof.name.slice(0, 4).toUpperCase()}`], ["🌍 Country", `${loc.country} · ${CURRENCIES[loc.country]?.code}`], ["💰 IPO", `${CURRENCIES[loc.country]?.symbol}${price.startPrice}`], ["🗂️ Phases", `${story.phases.length} phases`], ["✅ Habits", `${hab.habits.length} habits`]].map(([k, v]) => <div key={k} className="flex justify-between items-center bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-4 py-3 mb-2"><span className="text-sm text-[#555]">{k}</span><span className="text-sm text-[#ccc]">{v}</span></div>)}</Shell>);
+
+  // Step 7: Login bento card
+  return (
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6 py-10">
+      <div className="w-full max-w-sm space-y-3">
+        <div className="text-center mb-6">
+          <p className="text-xs text-[#333] uppercase tracking-widest mb-1">Step 7 of 7</p>
+          <h2 className="text-xl font-semibold text-[#e8e8e8]">Almost there</h2>
+          <p className="text-[#444] text-xs mt-1">Sign in to sync your data across all devices.</p>
+        </div>
+        {/* Summary bento */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-2xl p-4 col-span-2 flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#111] border border-[#1e1e1e] rounded-xl flex items-center justify-center text-2xl">📈</div>
+            <div>
+              <p className="font-semibold text-[#e8e8e8]">{prof.ticker || prof.name.slice(0,4).toUpperCase()}</p>
+              <p className="text-xs text-[#444]">{prof.name} · {loc.country}</p>
+            </div>
+            <div className="ml-auto text-right">
+              <p className="text-sm font-mono text-[#ccc]">{CURRENCIES[loc.country]?.symbol}{price.startPrice}</p>
+              <p className="text-[10px] text-[#333]">IPO Price</p>
+            </div>
+          </div>
+          <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold text-[#e8e8e8]">{story.phases.length}</p>
+            <p className="text-[10px] text-[#444] mt-1">Life Phases</p>
+          </div>
+          <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold text-[#e8e8e8]">{hab.habits.length}</p>
+            <p className="text-[10px] text-[#444] mt-1">Habits</p>
+          </div>
+        </div>
+        {/* Google login bento */}
+        <button
+          onClick={() => onComplete({ ...prof, ticker: prof.ticker || prof.name.slice(0, 4).toUpperCase(), ...loc, ...price, ...story, ...hab })}
+          className="w-full flex items-center justify-center gap-3 bg-[#111] border border-[#1e1e1e] hover:border-[#333] text-[#ccc] hover:text-[#e8e8e8] rounded-2xl px-6 py-4 text-sm font-medium transition-all"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Launch with Google
+        </button>
+        <button onClick={b} className="w-full text-xs text-[#333] hover:text-[#555] py-2 transition-all">← Back</button>
+      </div>
+    </div>
+  );
 };
 
 // ── Chart tooltip ─────────────────────────────────────────────────────────────
@@ -439,21 +500,36 @@ const SectorRadar = ({ sectorScores }) => {
 };
 
 // ── AI Coach ──────────────────────────────────────────────────────────────────
-const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, habits }) => {
-  const [messages, setMessages] = useState([{ role: "assistant", content: `Hey ${config.name}! I'm your AI Life Coach. I have full context on your index (${fmt(lifeIndex)}), ${phases.length} phases, ${skills.length} skills, ${weaknesses.length} weaknesses and ${orderBook.length} logged events. Ask me anything.` }]);
+const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, habits, uid }) => {
+  const WELCOME = { role: "assistant", content: `Hey ${config.name}! I'm your AI Life Coach. I have full context on your index (${fmt(lifeIndex)}), ${phases.length} phases, ${skills.length} skills, ${weaknesses.length} weaknesses and ${orderBook.length} logged events. Ask me anything.` };
+  const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [histLoaded, setHistLoaded] = useState(false);
 
   const bottomRef = useRef(null);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  // Load history from Firestore on mount
+  useEffect(() => {
+    if (!uid || histLoaded) return;
+    loadCoachHistory(uid).then(hist => {
+      if (hist.length > 0) setMessages([WELCOME, ...hist]);
+      setHistLoaded(true);
+    });
+  }, [uid]);
+
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { role: "user", content: input };
     setMessages(p => [...p, userMsg]); setInput(""); setLoading(true);
+    if (uid) saveCoachMessage(uid, userMsg);
     try {
       const ctx = `Elite life coach AI. User: Name=${config.name}, Country=${config.country}, Index=${fmt(lifeIndex)}, AllTime=${fmt(((lifeIndex - config.startPrice) / config.startPrice) * 100)}%, Phases=${phases.map(p => `${p.name}(${p.start}–${p.end || "now"})`).join(",") || "none"}, Skills=${skills.map(s => `${s.name}(${SKILL_LEVELS[s.level]})`).join(",") || "none"}, Weaknesses=${weaknesses.map(w => `${w.name}(${DEBT_SEVERITY[w.severity]})`).join(",") || "none"}, Habits=${habits.map(h => `${h.name}(${h.impact > 0 ? "+" : ""}${h.impact}%)`).join(",") || "none"}, Recent=${orderBook.slice(0, 10).map(o => `${o.desc}:${o.change > 0 ? "+" : ""}${fmt(o.change)}%`).join(",") || "none"}. Reply max 180 words, be direct and data-driven.`;
       const reply = await callAI(ctx, [...messages, userMsg].filter(m => m.role !== "system"));
-      setMessages(p => [...p, { role: "assistant", content: reply }]);
+      const assistantMsg = { role: "assistant", content: reply };
+      setMessages(p => [...p, assistantMsg]);
+      if (uid) saveCoachMessage(uid, assistantMsg);
     } catch (e) {
       setMessages(p => [...p, { role: "assistant", content: "Error: " + (e?.message || JSON.stringify(e)) }]);
     }
@@ -503,7 +579,7 @@ const TABS = [
 ];
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-const Dashboard = ({ config, onReset, initialData }) => {
+const Dashboard = ({ config, onReset, initialData, uid }) => {
   const curr = CURRENCIES[config.country]?.symbol || "$";
   const ticker = config.ticker || config.name.slice(0, 4).toUpperCase();
 
@@ -534,7 +610,7 @@ const Dashboard = ({ config, onReset, initialData }) => {
 
   // Save all state to persistent storage whenever anything changes
   useEffect(() => {
-    saveAllData({ config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
+    saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
   }, [chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
@@ -654,6 +730,50 @@ const Dashboard = ({ config, onReset, initialData }) => {
     const a = document.createElement("a"); a.href = url; a.download = `entropyzero-${today()}.json`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
+
+  // ── Daily AI Report ─────────────────────────────────────────────────────────
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const generateDailyReport = async () => {
+    setGeneratingReport(true);
+    try {
+      const todayStr = today();
+      const alreadyGenerated = pressReleases.some(pr => pr.tag === "daily-report" && pr.date === todayStr);
+      if (alreadyGenerated) { alert("Today's report already generated. Check the Press tab."); setGeneratingReport(false); return; }
+      const ctx = `You are entropyzero's financial analyst AI. Generate a concise daily report for ${config.name}'s life index.
+Data: Index=${fmt(lifeIndex)}, AllTime=${fmt(allTime)}%, Today=${fmt(todayChange)}%, Streak=${streak}d,
+Phases=${phases.map(p => p.name).join(", ") || "none"},
+Skills=${skills.map(s => s.name).join(", ") || "none"},
+Weaknesses=${weaknesses.map(w => w.name).join(", ") || "none"},
+Today's habits logged=${todayOrders.map(o => o.desc).join(", ") || "none"},
+Recent 5=${orderBook.slice(0,5).map(o => o.desc + ":" + o.change + "%").join(", ") || "none"}.
+Write a 3-paragraph press release style daily report with: headline analysis, key observations, and tomorrow's focus. Max 120 words. Start with the date.`;
+      const report = await callAI(ctx, [{ role: "user", content: "Generate today's daily life index report." }]);
+      const now = new Date();
+      const titleDate = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      setPressReleases(p => [{
+        id: uid(),
+        title: `📊 Daily Report — ${titleDate}`,
+        body: report,
+        type: todayChange >= 0 ? "positive" : "negative",
+        impact: parseFloat(fmt(todayChange)),
+        date: todayStr,
+        time: now.toLocaleTimeString(),
+        tag: "daily-report",
+      }, ...p]);
+      setView("press");
+    } catch (e) { alert("Could not generate report: " + e.message); }
+    setGeneratingReport(false);
+  };
+
+  // Auto-generate report once per day on mount
+  useEffect(() => {
+    const todayStr = today();
+    const alreadyDone = pressReleases.some(pr => pr.tag === "daily-report" && pr.date === todayStr);
+    if (!alreadyDone && orderBook.length > 0) {
+      const timer = setTimeout(() => generateDailyReport(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <div className={`min-h-screen ${C.bg} text-[#e8e8e8]`}>
@@ -804,10 +924,15 @@ const Dashboard = ({ config, onReset, initialData }) => {
         </>)}
 
         {/* COACH */}
-        {view === "coach" && <AICoach config={config} lifeIndex={lifeIndex} orderBook={orderBook} skills={skills} weaknesses={weaknesses} phases={phases} habits={habits} />}
+        {view === "coach" && <AICoach config={config} lifeIndex={lifeIndex} orderBook={orderBook} skills={skills} weaknesses={weaknesses} phases={phases} habits={habits} uid={uid} />}
 
         {/* PRESS */}
         {view === "press" && (<>
+          <div className="flex gap-2">
+            <Btn variant="ghost" className="flex-1" onClick={generateDailyReport} disabled={generatingReport}>
+              {generatingReport ? "Generating…" : "🤖 Generate Today's AI Report"}
+            </Btn>
+          </div>
           <Card>
             <div className="flex items-center gap-2 mb-4">
               <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Newspaper size={16} className="text-[#333]" />Publish Press Release</h2>
@@ -824,7 +949,7 @@ const Dashboard = ({ config, onReset, initialData }) => {
             </div>
           </Card>
           {pressReleases.map(pr => (
-            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#0e0e0e] border-[#1a1a1a]"}`}>
+            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.tag === "daily-report" ? "bg-[#0a0a14] border-blue-900/20" : pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#0e0e0e] border-[#1a1a1a]"}`}>
               <div className="flex items-start justify-between mb-3">
                 <div><p className="font-semibold text-[#ccc] text-sm">{pr.title}</p><p className="text-[10px] text-[#2a2a2a] mt-1">{pr.date}·{pr.time}</p></div>
                 <div className="flex gap-2">
@@ -861,7 +986,25 @@ const Dashboard = ({ config, onReset, initialData }) => {
               <Input type="number" step="0.5" placeholder="%" className="w-16 font-mono" id="hi" />
               <select className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-3 py-2.5 text-xs text-[#888] focus:outline-none" id="ht"><option value="positive">+ Positive</option><option value="negative">− Negative</option></select>
               <select className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl px-3 py-2.5 text-xs text-[#888] focus:outline-none" id="hs"><option value="auto">🤖 Auto</option>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji}{s.label}</option>)}</select>
-              <Btn onClick={() => { const name = document.getElementById("hn").value, imp = document.getElementById("hi").value, type = document.getElementById("ht").value, sEl = document.getElementById("hs"); if (!name || !imp) return; const impact = parseFloat(imp) * (type === "negative" ? -1 : 1); const sector = sEl.value === "auto" ? classifyHabit(name) : sEl.value; setHabits(p => [...p, { id: uid(), name, impact, type, emoji: type === "positive" ? "✅" : "❌", sector }]); document.getElementById("hn").value = ""; document.getElementById("hi").value = ""; }}><Plus size={16} /></Btn>
+              <Btn onClick={() => {
+  const name = document.getElementById("hn").value,
+        imp = document.getElementById("hi").value,
+        type = document.getElementById("ht").value,
+        sEl = document.getElementById("hs");
+  if (!name || !imp) return;
+  const impact = parseFloat(imp) * (type === "negative" ? -1 : 1);
+  const sector = sEl.value === "auto" ? classifyHabit(name) : sEl.value;
+  const newHabits = [{ id: uid(), name, impact, type, emoji: type === "positive" ? "✅" : "❌", sector }];
+  // Auto-add opposite habit
+  if (type === "positive") {
+    newHabits.push({ id: uid(), name: `Skip ${name}`, impact: -Math.abs(impact), type: "negative", emoji: "❌", sector });
+  } else {
+    newHabits.push({ id: uid(), name: `Avoid ${name}`, impact: Math.abs(impact), type: "positive", emoji: "✅", sector });
+  }
+  setHabits(p => [...p, ...newHabits]);
+  document.getElementById("hn").value = "";
+  document.getElementById("hi").value = "";
+}}><Plus size={16} /></Btn>
             </div>
           </Card>
           <Card>
@@ -1059,7 +1202,8 @@ const Dashboard = ({ config, onReset, initialData }) => {
             <Card>
               <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><AlertTriangle size={15} className="text-red-900" />Danger Zone</h2>
               <p className="text-xs text-[#333] mb-4">Permanently delete all data and restart.</p>
-              <Btn variant="danger" className="w-full" onClick={() => { if (window.confirm("Reset ALL data? Cannot be undone.")) { saveAllData(null).then(() => onReset()); } }}><Trash2 size={15} />Reset Everything</Btn>
+              <Btn variant="ghost" className="w-full mb-2" onClick={() => signOut(auth)}>Sign Out of Google</Btn>
+              <Btn variant="danger" className="w-full" onClick={() => { if (window.confirm("Reset ALL data? Cannot be undone.")) { onReset(); } }}><Trash2 size={15} />Reset Everything</Btn>
             </Card>
           </div>
         )}
@@ -1069,34 +1213,101 @@ const Dashboard = ({ config, onReset, initialData }) => {
   );
 };
 
+// ── Welcome Splash ───────────────────────────────────────────────────────────
+const WelcomeSplash = ({ name }) => {
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? "It's the dead of night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "It's midnight";
+  const emoji = hour < 5 ? "🌑" : hour < 12 ? "🌅" : hour < 17 ? "☀️" : hour < 21 ? "🌆" : "🌙";
+  return (
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
+      <div className="text-center">
+        <div className="text-5xl mb-6 animate-pulse">{emoji}</div>
+        <p className="text-[#444] text-sm mb-2 tracking-widest uppercase">{greeting}</p>
+        <h1 className="text-4xl font-semibold text-[#e8e8e8] tracking-tight">{name}</h1>
+        <div className="mt-8 flex justify-center gap-1">
+          {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#333] animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Login Screen ─────────────────────────────────────────────────────────────
+const LoginScreen = ({ onLogin, loading }) => (
+  <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
+    <div className="w-full max-w-sm text-center">
+      <div className="w-14 h-14 bg-[#111] border border-[#1e1e1e] rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl">📈</div>
+      <h1 className="text-3xl font-semibold text-[#e8e8e8] tracking-tight mb-2">entropyzero</h1>
+      <p className="text-[#444] text-sm mb-10">Your life, quantified.</p>
+      <button
+        onClick={onLogin}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-3 bg-[#111] border border-[#1e1e1e] hover:border-[#333] text-[#ccc] hover:text-[#e8e8e8] rounded-2xl px-6 py-4 text-sm font-medium transition-all disabled:opacity-50"
+      >
+        {loading ? (
+          <span className="animate-pulse">Signing in…</span>
+        ) : (
+          <>
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </>
+        )}
+      </button>
+      <p className="text-[#2a2a2a] text-xs mt-6">Your data is saved to your Google account across all devices.</p>
+    </div>
+  </div>
+);
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [appState, setAppState] = useState("loading"); // loading | welcome | onboarding | dashboard
+  const [appState, setAppState] = useState("loading");
   const [config, setConfig]     = useState(null);
   const [initialData, setInitialData] = useState(null);
   const [key, setKey]           = useState(0);
   const [importing, setImporting] = useState(false);
+  const [user, setUser]         = useState(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
+  const [splashName, setSplashName] = useState("");
 
   useEffect(() => {
-    loadAllData().then(data => {
-      if (data && data.config) {
-        setConfig(data.config);
-        setInitialData(data);
-        setAppState("dashboard");
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        const data = await loadAllData(firebaseUser.uid);
+        if (data && data.config) {
+          setConfig(data.config);
+          setInitialData(data);
+          setSplashName(data.config.name);
+          setShowSplash(true);
+          setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 3000);
+        } else {
+          setAppState("welcome");
+        }
       } else {
-        setAppState("welcome");
+        setUser(null);
+        setAppState("login");
       }
     });
+    return () => unsub();
   }, []);
+
+  const handleGoogleLogin = async () => {
+    setLoginLoading(true);
+    try { await signInWithPopup(auth, googleProvider); }
+    catch (e) { console.error(e); setLoginLoading(false); }
+  };
 
   const handleComplete = async (profile) => {
     setConfig(profile);
-    await saveAllData({ config: profile });
-    setAppState("dashboard");
+    await saveAllData(user.uid, { config: profile });
+    setSplashName(profile.name);
+    setShowSplash(true);
+    setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 3000);
   };
 
   const handleReset = async () => {
-    await saveAllData(null);
+    await saveAllData(user.uid, null);
     setConfig(null);
     setInitialData(null);
     setKey(k => k + 1);
@@ -1113,6 +1324,9 @@ export default function App() {
       </div>
     );
   }
+
+  if (showSplash) return <WelcomeSplash name={splashName} />;
+  if (appState === "login") return <LoginScreen onLogin={handleGoogleLogin} loading={loginLoading} />;
 
   const handleDirectImport = (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -1132,7 +1346,7 @@ export default function App() {
           weaknesses: d.weaknesses || null, pressReleases: d.pressReleases || null,
           moodLog: d.moodLog || null, goals: d.goals || null, timeCapsules: d.timeCapsules || null,
         };
-        await saveAllData(importPayload);
+        await saveAllData(uid, importPayload);
         setConfig(cfg);
         setInitialData(importPayload);
         setKey(k => k + 1);
@@ -1160,5 +1374,5 @@ export default function App() {
     </>
   );
 
-  return <Dashboard key={config.name + key} config={config} onReset={handleReset} initialData={initialData} />;
+  return <Dashboard key={config.name + key} config={config} onReset={handleReset} initialData={initialData} uid={user?.uid} />;
 }

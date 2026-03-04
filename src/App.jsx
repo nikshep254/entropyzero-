@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, deleteDoc, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase.js";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import { TrendingUp, Activity, Plus, Trash2, Send, ChevronRight, ChevronLeft, Check, X, Download, Upload, BarChart2, BookOpen, Settings, Zap, Newspaper, Star, AlertTriangle, Brain, Target, Calendar, Award, Flame, Moon, Layers, Info } from "lucide-react";
@@ -70,6 +70,31 @@ async function loadCoachHistory(uid) {
 async function saveCoachMessage(uid, msg) {
   try {
     await addDoc(collection(db, "users", uid, "coachHistory"), { msg, ts: Date.now() });
+  } catch (_) {}
+}
+
+async function clearCoachHistory(uid) {
+  if (!uid) return;
+  try {
+    const q = query(collection(db, "users", uid, "coachHistory"));
+    const snap = await getDocs(q);
+    const deletes = snap.docs.map(d => deleteDoc(d.ref));
+    await Promise.all(deletes);
+  } catch (_) {}
+}
+
+async function getLastWeeklyReport(uid) {
+  if (!uid) return null;
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "meta", "weeklyReport"));
+    return snap.exists() ? snap.data() : null;
+  } catch (_) { return null; }
+}
+
+async function saveLastWeeklyReport(uid, data) {
+  if (!uid) return;
+  try {
+    await setDoc(doc(db, "users", uid, "meta", "weeklyReport"), data);
   } catch (_) {}
 }
 
@@ -532,6 +557,7 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [histLoaded, setHistLoaded] = useState(false);
+  const [loadingHist, setLoadingHist] = useState(true);
 
   const bottomRef = useRef(null);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -539,11 +565,19 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
   // Load history from Firestore on mount
   useEffect(() => {
     if (!uid || histLoaded) return;
+    setLoadingHist(true);
     loadCoachHistory(uid).then(hist => {
       if (hist.length > 0) setMessages([WELCOME, ...hist]);
       setHistLoaded(true);
-    });
+      setLoadingHist(false);
+    }).catch(() => { setHistLoaded(true); setLoadingHist(false); });
   }, [uid]);
+
+  const clearHistory = async () => {
+    if (!window.confirm("Clear all chat history? Cannot be undone.")) return;
+    await clearCoachHistory(uid);
+    setMessages([WELCOME]);
+  };
 
   const send = async () => {
     if (!input.trim() || loading) return;
@@ -565,23 +599,42 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Brain size={16} className="text-[#777]" />AI Life Coach</h2>
-        <InfoTooltip feature="coach" />
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Brain size={16} className="text-[#777]" />AI Life Coach</h2>
+          <InfoTooltip feature="coach" />
+        </div>
+        <div className="flex items-center gap-2">
+          {messages.length > 1 && (
+            <button onClick={clearHistory} className="text-[10px] text-[#555] hover:text-red-400 transition-all px-2 py-1 rounded-lg border border-[#252525] hover:border-red-900/30">
+              Clear history
+            </button>
+          )}
+          <span className="text-[10px] text-[#555] font-mono">{messages.length - 1} msgs</span>
+        </div>
       </div>
-      <div className="space-y-3 max-h-80 overflow-y-auto mb-4 pr-1">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-[#1a1a1a] border border-[#333] text-[#ddd]" : "bg-[#181818] border border-[#2a2a2a] text-[#bbb]"}`}>
-              {m.role === "assistant" && <p className="text-[10px] text-[#777] mb-1 font-mono">COACH</p>}
-              {m.content}
+
+      {loadingHist && !histLoaded ? (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-xs text-[#555] animate-pulse">Loading chat history…</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto mb-4 pr-1">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-[#1a1a1a] border border-[#333] text-[#ddd]" : "bg-[#181818] border border-[#2a2a2a] text-[#bbb]"}`}>
+                {m.role === "assistant" && <p className="text-[10px] text-[#555] mb-1 font-mono">COACH · {i === 0 ? "intro" : `msg ${i}`}</p>}
+                {m.content}
+              </div>
             </div>
-          </div>
-        ))}
-        {loading && <div className="flex"><div className="bg-[#181818] border border-[#2a2a2a] rounded-2xl px-4 py-3 text-sm text-[#777]">Analysing…</div></div>}
-      </div>
+          ))}
+          {loading && <div className="flex"><div className="bg-[#181818] border border-[#2a2a2a] rounded-2xl px-4 py-3 text-sm text-[#666]">Analysing…</div></div>}
+          <div ref={bottomRef} />
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask about your patterns, goals…" className="flex-1" />
-        <Btn onClick={send} disabled={loading || !input.trim()}><Send size={15} /></Btn>
+        <Btn onClick={send} disabled={loading || !input.trim() || loadingHist}><Send size={15} /></Btn>
       </div>
       <div className="flex flex-wrap gap-2 mt-3">
         {["What are my patterns?", "Where am I weakest?", "Focus for next 30 days?", "Honest life review"].map(q => (
@@ -796,6 +849,56 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
 
   // Daily report is manual only - use the button in Press tab
 
+  // ── Weekly AI Summary ───────────────────────────────────────────────────────
+  const generateWeeklySummary = useCallback(async (manual = false) => {
+    if (!uid) return;
+    try {
+      const meta = await getLastWeeklyReport(uid);
+      const lastDate = meta?.date || null;
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+      const thisWeekMonday = new Date(now);
+      thisWeekMonday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+      const thisWeekStr = thisWeekMonday.toISOString().split("T")[0];
+
+      if (!manual && lastDate >= thisWeekStr) return; // already done this week
+
+      const weekAgo = new Date(now.getTime() - 7 * 86400000);
+      const weekOrders = orderBook.filter(o => new Date(o.date) >= weekAgo);
+      if (weekOrders.length === 0 && !manual) return; // nothing to report
+
+      const ctx = `You are entropyzero's AI analyst. Write a weekly life index performance summary.
+User: ${config.name}, Index: ${fmt(lifeIndex)}, AllTime: ${fmt(allTime)}%, Streak: ${streak}d
+This week's activity (${weekOrders.length} events): ${weekOrders.slice(0, 15).map(o => o.desc + ":" + (o.change > 0 ? "+" : "") + o.change + "%").join(", ") || "none"}
+Top skills: ${skills.slice(0, 3).map(s => s.name).join(", ") || "none"}
+Active weaknesses: ${weaknesses.slice(0, 3).map(w => w.name).join(", ") || "none"}
+Write a 4-paragraph weekly review: performance summary, what drove gains/losses, patterns noticed, focus for next week. Max 200 words. Title it with the week dates.`;
+
+      const report = await callAI(ctx, [{ role: "user", content: "Generate this week's life index weekly summary." }]);
+      const weekEnd = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const weekStart = weekAgo.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const pr = {
+        id: uid(),
+        title: `📅 Weekly Summary — ${weekStart} to ${weekEnd}`,
+        body: report,
+        type: allTime >= 0 ? "positive" : "negative",
+        impact: 0,
+        date: today(),
+        time: now.toLocaleTimeString(),
+        tag: "weekly-summary",
+      };
+      setPressReleases(p => [pr, ...p.filter(x => x.tag !== "weekly-summary" || x.date !== today())]);
+      await saveLastWeeklyReport(uid, { date: thisWeekStr });
+    } catch (e) { console.error("Weekly report error:", e); }
+  }, [uid, orderBook, config, lifeIndex, allTime, streak, skills, weaknesses]);
+
+  // Auto-generate weekly summary on mount if due
+  useEffect(() => {
+    if (!uid || orderBook.length === 0) return;
+    const timer = setTimeout(() => generateWeeklySummary(false), 8000);
+    return () => clearTimeout(timer);
+  }, [uid]);
+
   return (
     <div className={`min-h-screen ${C.bg} text-[#e8e8e8]`}>
       {openCapsules.map(c => (
@@ -951,7 +1054,10 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
         {view === "press" && (<>
           <div className="flex gap-2">
             <Btn variant="ghost" className="flex-1" onClick={generateDailyReport} disabled={generatingReport}>
-              {generatingReport ? "Generating…" : "🤖 Generate Today's AI Report"}
+              {generatingReport ? "Generating…" : "🤖 Daily Report"}
+            </Btn>
+            <Btn variant="ghost" className="flex-1" onClick={() => generateWeeklySummary(true)} disabled={generatingReport}>
+              📅 Weekly Summary
             </Btn>
           </div>
           <Card>
@@ -970,7 +1076,7 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
             </div>
           </Card>
           {pressReleases.map(pr => (
-            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.tag === "daily-report" ? "bg-[#0a0a14] border-blue-900/20" : pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#181818] border-[#2a2a2a]"}`}>
+            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.tag === "weekly-summary" ? "bg-purple-950/10 border-purple-900/20" : pr.tag === "daily-report" ? "bg-blue-950/10 border-blue-900/20" : pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#181818] border-[#2a2a2a]"}`}>
               <div className="flex items-start justify-between mb-3">
                 <div><p className="font-semibold text-[#ddd] text-sm">{pr.title}</p><p className="text-[10px] text-[#4a4a4a] mt-1">{pr.date}·{pr.time}</p></div>
                 <div className="flex gap-2">

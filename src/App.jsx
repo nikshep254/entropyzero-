@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase.js";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
@@ -1298,28 +1298,47 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        const data = await loadAllData(firebaseUser.uid);
-        if (data && data.config) {
-          setConfig(data.config);
-          setInitialData(data);
-          setSplashName(data.config.name);
-          setShowSplash(true);
-          setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 3000);
-        } else {
+        setLoginLoading(false);
+        try {
+          const data = await loadAllData(firebaseUser.uid);
+          if (data && data.config) {
+            setConfig(data.config);
+            setInitialData(data);
+            setSplashName(data.config.name);
+            setShowSplash(true);
+            setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 1500);
+          } else {
+            setAppState("welcome");
+          }
+        } catch(e) {
           setAppState("welcome");
         }
       } else {
         setUser(null);
+        setLoginLoading(false);
         setAppState("welcome");
       }
     });
+
+    // Explicitly handle redirect result so Safari gets the user back
+    getRedirectResult(auth).then(result => {
+      if (result?.user) {
+        // onAuthStateChanged will handle the rest
+      }
+    }).catch(e => {
+      console.error("Redirect error:", e);
+      setLoginLoading(false);
+      setAppState("welcome");
+    });
+
     return () => unsub();
   }, []);
 
   const handleGoogleLogin = async () => {
     setLoginLoading(true);
-    try { await signInWithPopup(auth, googleProvider); }
-    catch (e) { console.error(e); setLoginLoading(false); }
+    setAppState("loading");
+    try { await signInWithRedirect(auth, googleProvider); }
+    catch (e) { console.error(e); setLoginLoading(false); setAppState("welcome"); }
   };
 
   const handleComplete = async (profile) => {
@@ -1327,7 +1346,7 @@ export default function App() {
     await saveAllData(user.uid, { config: profile });
     setSplashName(profile.name);
     setShowSplash(true);
-    setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 3000);
+    setTimeout(() => { setShowSplash(false); setAppState("dashboard"); }, 1500);
   };
 
   const handleReset = async () => {
@@ -1342,8 +1361,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">📈</div>
-          <p className="text-[#777] text-sm">Loading your index…</p>
+          <div className="text-4xl mb-3 animate-pulse">📈</div>
+          <p className="text-[#777] text-sm mb-1">entropyzero</p>
+          <p className="text-[#444] text-xs">{loginLoading ? "Signing in with Google…" : "Checking session…"}</p>
         </div>
       </div>
     );

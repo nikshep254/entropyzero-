@@ -54,9 +54,7 @@ async function loadAllData(uid) {
 
 async function saveAllData(uid, data) {
   if (!uid) return;
-  try {
-    await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: data });
-  } catch (e) { console.error("Save error:", e); }
+  await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: data });
 }
 
 async function loadCoachHistory(uid) {
@@ -686,13 +684,16 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [newGoal, setNewGoal]             = useState({ title: "", sector: "academics", reward: 0 });
   const [capsule, setCapsule]             = useState({ message: "", unlockDate: "" });
   const [moreTab, setMoreTab]             = useState("heatmap");
+  const [saving, setSaving]               = useState(false);
+  const [lastSaved, setLastSaved]         = useState(null);
 
   // Save all state to persistent storage whenever anything changes
   useEffect(() => {
     if (!uid) return;
-    try {
-      saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
-    } catch(e) { console.error("Save error:", e); }
+    setSaving(true);
+    saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules })
+      .then(() => { setLastSaved(new Date()); setSaving(false); })
+      .catch(e => { console.error("Save error:", e); setSaving(false); });
   }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
@@ -922,6 +923,14 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
             <InfoTooltip feature="lifeIndex" />
           </div>
           <p className={`text-xs font-mono ${todayChange >= 0 ? "text-green-500" : "text-red-500"}`}>{todayChange >= 0 ? "+" : ""}{fmt(todayChange)}% today</p>
+          <div className="flex items-center gap-1 justify-end mt-0.5">
+            {saving
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] text-yellow-600 font-mono">saving…</span></>
+              : lastSaved
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-green-500" /><span className="text-[9px] text-green-700 font-mono">saved {lastSaved.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</span></>
+              : null
+            }
+          </div>
         </div>
       </div>
 
@@ -1330,8 +1339,11 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
                   </div>
                 </div>
                 <div className="flex justify-between items-center py-2 border-t border-[#252525]">
-                  <span className="text-xs text-[#666]">Data synced to cloud</span>
-                  <span className="text-xs text-green-600">● Live</span>
+                  <span className="text-xs text-[#666]">Cloud sync</span>
+                  <span className={`text-xs flex items-center gap-1.5 font-mono ${saving ? "text-yellow-500" : "text-green-600"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${saving ? "bg-yellow-500 animate-pulse" : "bg-green-500"}`} />
+                    {saving ? "Saving…" : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}` : "Live"}
+                  </span>
                 </div>
               </Card>
             )}
@@ -1344,9 +1356,47 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
               ))}
             </Card>
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><Download size={15} className="text-[#777]" />Export Data</h2>
-              <p className="text-xs text-[#777] mb-4">Full backup as JSON.</p>
-              <Btn variant="ghost" className="w-full" onClick={exportData}><Download size={15} />Export All Data</Btn>
+              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><Download size={15} className="text-[#777]" />Backup & Restore</h2>
+              <div className="flex justify-between items-center py-2 border-b border-[#252525] mb-3">
+                <span className="text-xs text-[#666]">Last cloud save</span>
+                <span className="text-xs font-mono text-[#888]">
+                  {lastSaved ? lastSaved.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : saving ? "Saving…" : "Not yet saved"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Btn variant="ghost" className="flex-1" onClick={exportData}><Download size={15} />Export JSON</Btn>
+                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer bg-[#202020] border border-[#2e2e2e] text-[#aaa] hover:bg-[#1a1a1a] hover:text-[#e8e8e8]`}>
+                  <Upload size={15} />Import JSON
+                  <input type="file" accept=".json" className="hidden" onChange={e => {
+                    const f = e.target.files[0]; if (!f) return;
+                    const r = new FileReader();
+                    r.onload = async ev => {
+                      try {
+                        const d = JSON.parse(ev.target.result);
+                        if (!d.config) { alert("❌ Invalid backup file."); return; }
+                        const payload = {
+                          config: d.config,
+                          chartData: d.chartData || null,
+                          orderBook: d.orderBook || null,
+                          habits: d.habits || null,
+                          phases: d.phases || null,
+                          skills: d.skills || null,
+                          weaknesses: d.weaknesses || null,
+                          pressReleases: d.pressReleases || null,
+                          moodLog: d.moodLog || null,
+                          goals: d.goals || null,
+                          timeCapsules: d.timeCapsules || null,
+                        };
+                        await saveAllData(uid, payload);
+                        alert("✅ Data imported! Reloading…");
+                        window.location.reload();
+                      } catch(err) { alert("❌ Could not read file: " + err.message); }
+                      e.target.value = "";
+                    };
+                    r.readAsText(f);
+                  }} />
+                </label>
+              </div>
             </Card>
             <Card>
               <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><AlertTriangle size={15} className="text-red-900" />Danger Zone</h2>

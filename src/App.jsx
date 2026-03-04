@@ -9,38 +9,26 @@ import { TrendingUp, Activity, Plus, Trash2, Send, ChevronRight, ChevronLeft, Ch
 const OR_KEY = import.meta.env.VITE_OPENROUTER_KEY || "";
 
 async function callAI(systemPrompt, messages) {
-  // Try OpenRouter first
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OR_KEY}`,
-        "HTTP-Referer": "https://entropyzero.app",
-        "X-Title": "entropyzero",
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-3.5-haiku",
-        max_tokens: 600,
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
-      }),
-    });
-    const d = await res.json();
-    if (d.choices?.[0]?.message?.content) return d.choices[0].message.content;
-  } catch (_) {}
-  // Fallback: Anthropic direct (works in Claude artifact sandbox)
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  if (!OR_KEY) throw new Error("No API key. Set VITE_OPENROUTER_KEY in Vercel environment variables.");
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OR_KEY}`,
+      "HTTP-Referer": "https://entropyzero-gamma.vercel.app",
+      "X-Title": "entropyzero",
+    },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "anthropic/claude-3.5-haiku",
       max_tokens: 600,
-      system: systemPrompt,
-      messages,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
   });
+  if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
   const d = await res.json();
-  return d.content?.[0]?.text || "No response.";
+  const text = d.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Empty response from AI.");
+  return text;
 }
 
 // ── Firestore storage helpers ───────────────────────────────────────────────
@@ -681,6 +669,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [prType, setPrType]               = useState("neutral");
   const [newSkill, setNewSkill]           = useState({ name: "", level: 0, category: "Technical", sector: "skills", developingHabit: "" });
   const [newDebt, setNewDebt]             = useState({ name: "", severity: 0, category: "Mental", plan: "" });
+  const [newHabit, setNewHabit]           = useState({ name: "", impact: "", type: "positive", sector: "auto" });
   const [newGoal, setNewGoal]             = useState({ title: "", sector: "academics", reward: 0 });
   const [capsule, setCapsule]             = useState({ message: "", unlockDate: "" });
   const [moreTab, setMoreTab]             = useState("heatmap");
@@ -1065,7 +1054,7 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
             <Btn variant="ghost" className="flex-1" onClick={generateDailyReport} disabled={generatingReport}>
               {generatingReport ? "Generating…" : "🤖 Daily Report"}
             </Btn>
-            <Btn variant="ghost" className="flex-1" onClick={() => generateWeeklySummary(true)} disabled={generatingReport}>
+            <Btn variant="ghost" className="flex-1" onClick={() => generateWeeklySummary(true)}>
               📅 Weekly Summary
             </Btn>
           </div>
@@ -1118,29 +1107,50 @@ Write a 4-paragraph weekly review: performance summary, what drove gains/losses,
           <Card>
             <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#ddd] text-sm">Add Habit</h3><InfoTooltip feature="habits" /></div>
             <div className="flex gap-2 flex-wrap">
-              <Input placeholder="Name" className="flex-1 min-w-32" id="hn" />
-              <Input type="number" step="0.5" placeholder="%" className="w-16 font-mono" id="hi" />
-              <select className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none" id="ht"><option value="positive">+ Positive</option><option value="negative">− Negative</option></select>
-              <select className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none" id="hs"><option value="auto">🤖 Auto</option>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji}{s.label}</option>)}</select>
+              <Input
+                placeholder="Habit name"
+                className="flex-1 min-w-32"
+                value={newHabit.name}
+                onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))}
+              />
+              <Input
+                type="number"
+                step="0.5"
+                placeholder="%"
+                className="w-16 font-mono"
+                value={newHabit.impact}
+                onChange={e => setNewHabit(p => ({ ...p, impact: e.target.value }))}
+              />
+              <select
+                className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none"
+                value={newHabit.type}
+                onChange={e => setNewHabit(p => ({ ...p, type: e.target.value }))}
+              >
+                <option value="positive">+ Positive</option>
+                <option value="negative">− Negative</option>
+              </select>
+              <select
+                className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none"
+                value={newHabit.sector}
+                onChange={e => setNewHabit(p => ({ ...p, sector: e.target.value }))}
+              >
+                <option value="auto">🤖 Auto</option>
+                {SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji}{s.label}</option>)}
+              </select>
               <Btn onClick={() => {
-  const name = document.getElementById("hn").value,
-        imp = document.getElementById("hi").value,
-        type = document.getElementById("ht").value,
-        sEl = document.getElementById("hs");
-  if (!name || !imp) return;
-  const impact = parseFloat(imp) * (type === "negative" ? -1 : 1);
-  const sector = sEl.value === "auto" ? classifyHabit(name) : sEl.value;
-  const newHabits = [{ id: uid(), name, impact, type, emoji: type === "positive" ? "✅" : "❌", sector }];
-  // Auto-add opposite habit
-  if (type === "positive") {
-    newHabits.push({ id: uid(), name: `Skip ${name}`, impact: -Math.abs(impact), type: "negative", emoji: "❌", sector });
-  } else {
-    newHabits.push({ id: uid(), name: `Avoid ${name}`, impact: Math.abs(impact), type: "positive", emoji: "✅", sector });
-  }
-  setHabits(p => [...p, ...newHabits]);
-  document.getElementById("hn").value = "";
-  document.getElementById("hi").value = "";
-}}><Plus size={16} /></Btn>
+                if (!newHabit.name.trim() || !newHabit.impact) return;
+                const impact = parseFloat(newHabit.impact) * (newHabit.type === "negative" ? -1 : 1);
+                if (isNaN(impact)) return;
+                const sector = newHabit.sector === "auto" ? classifyHabit(newHabit.name) : newHabit.sector;
+                const toAdd = [{ id: uid(), name: newHabit.name, impact, type: newHabit.type, emoji: newHabit.type === "positive" ? "✅" : "❌", sector }];
+                if (newHabit.type === "positive") {
+                  toAdd.push({ id: uid(), name: `Skip ${newHabit.name}`, impact: -Math.abs(impact), type: "negative", emoji: "❌", sector });
+                } else {
+                  toAdd.push({ id: uid(), name: `Avoid ${newHabit.name}`, impact: Math.abs(impact), type: "positive", emoji: "✅", sector });
+                }
+                setHabits(p => [...p, ...toAdd]);
+                setNewHabit({ name: "", impact: "", type: "positive", sector: "auto" });
+              }}><Plus size={16} /></Btn>
             </div>
           </Card>
           <Card>

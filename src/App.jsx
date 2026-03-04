@@ -1310,7 +1310,7 @@ export default function App() {
         }
       } else {
         setUser(null);
-        setAppState("login");
+        setAppState("welcome");
       }
     });
     return () => unsub();
@@ -1350,8 +1350,6 @@ export default function App() {
   }
 
   if (showSplash) return <WelcomeSplash name={splashName} />;
-  if (appState === "login") return <LoginScreen onLogin={handleGoogleLogin} loading={loginLoading} />;
-
   const handleDirectImport = (e) => {
     const f = e.target.files[0]; if (!f) return;
     setImporting(true);
@@ -1370,7 +1368,7 @@ export default function App() {
           weaknesses: d.weaknesses || null, pressReleases: d.pressReleases || null,
           moodLog: d.moodLog || null, goals: d.goals || null, timeCapsules: d.timeCapsules || null,
         };
-        await saveAllData(uid, importPayload);
+        await saveAllData(user?.uid, importPayload);
         setConfig(cfg);
         setInitialData(importPayload);
         setKey(k => k + 1);

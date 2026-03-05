@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>entropyzero widget</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0d0d;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .widget {
+      width: 100%;
+      max-width: 480px;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      padding: 20px;
+      margin: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .ticker { font-family: monospace; font-size: 11px; color: #555; margin-top: 2px; }
+    .name { font-size: 14px; font-weight: 600; color: #e8e8e8; }
+    .price { font-size: 22px; font-weight: 700; font-family: monospace; }
+    .change { font-size: 11px; font-family: monospace; margin-top: 2px; }
+    .pos { color: #22c55e; } .neg { color: #ef4444; }
+    .chart-wrap { width: 100%; height: 160px; position: relative; margin-bottom: 14px; }
+    svg.chart { width: 100%; height: 100%; overflow: visible; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: #1a1a1a;
+      border: 1px solid #252525;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .stat-val { font-size: 13px; font-weight: 600; font-family: monospace; }
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #1e1e1e;
+      padding-top: 12px;
+    }
+    .brand { font-size: 10px; color: #444; letter-spacing: 0.08em; }
+    .brand span { color: #666; }
+    .cta {
+      font-size: 10px;
+      color: #555;
+      text-decoration: none;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 4px 10px;
+      transition: all 0.2s;
+    }
+    .cta:hover { color: #e8e8e8; border-color: #444; }
+    .loading { text-align: center; padding: 40px; color: #444; font-size: 13px; }
+    .error { text-align: center; padding: 40px; color: #555; font-size: 12px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 4px; }
+  </style>
+</head>
+<body>
+<div class="widget" id="widget">
+  <div class="loading" id="loading">
+    <div style="font-size:24px;margin-bottom:8px">📈</div>
+    Loading index…
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuPTw6WpRTWSDhs_L_W9OELFP6ff6Ki0c",
+    authDomain: "copiumai-9f5b6.firebaseapp.com",
+    projectId: "copiumai-9f5b6",
+    storageBucket: "copiumai-9f5b6.firebasestorage.app",
+    messagingSenderId: "164793994267",
+    appId: "1:164793994267:web:f9d3594cca736c7fa67cbe",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("uid");
+  const theme = params.get("theme") || "dark";
+
+  if (!userId) {
+    document.getElementById("loading").innerHTML = `<div class="error">No user ID provided.<br><span style="color:#333;font-size:10px">Add ?uid=YOUR_ID to the URL</span></div>`;
+  } else {
+    loadWidget(userId);
+  }
+
+  async function loadWidget(uid) {
+    try {
+      const snap = await getDoc(doc(db, "public", uid));
+      if (!snap.exists()) {
+        document.getElementById("loading").innerHTML = `<div class="error">Widget not enabled.<br><span style="color:#333;font-size:10px">Enable sharing in entropyzero settings.</span></div>`;
+        return;
+      }
+      const data = snap.data();
+      renderWidget(data);
+    } catch(e) {
+      document.getElementById("loading").innerHTML = `<div class="error">Could not load data.<br><span style="color:#333;font-size:10px">${e.message}</span></div>`;
+    }
+  }
+
+  function renderWidget(data) {
+    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData, lastUpdated } = data;
+    const isPos = allTime >= 0;
+    const fmt = (n, d=2) => parseFloat(n).toFixed(d);
+
+    // Build SVG path from chartData
+    const pts = (chartData || []).slice(-90); // last 90 days
+    const svgPath = buildPath(pts);
+    const color = isPos ? "#22c55e" : "#ef4444";
+    const gradId = "cg" + Math.random().toString(36).slice(2,6);
+
+    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "—";
+
+    document.getElementById("widget").innerHTML = `
+      <div class="header">
+        <div>
+          <div class="name">${name}</div>
+          <div class="ticker">$${ticker} · ${currency || "USD"}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="price ${isPos ? "pos" : "neg"}">${currentPrice ? fmt(currentPrice) : "—"}</div>
+          <div class="change ${isPos ? "pos" : "neg"}">${isPos ? "+" : ""}${fmt(allTime)}% all-time</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <svg class="chart" viewBox="0 0 400 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stop-color="${color}" stop-opacity="0.2"/>
+              <stop offset="95%" stop-color="${color}" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${svgPath ? `
+            <path d="${svgPath.area}" fill="url(#${gradId})"/>
+            <path d="${svgPath.line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+          ` : '<text x="200" y="80" text-anchor="middle" fill="#333" font-size="12">No chart data yet</text>'}
+        </svg>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">IPO Price</div>
+          <div class="stat-val" style="color:#888">${fmt(startPrice)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Current</div>
+          <div class="stat-val ${isPos ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">🔥 Streak</div>
+          <div class="stat-val" style="color:#f97316">${streak || 0}d</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="brand"><span class="dot"></span><span>entropyzero</span> · synced ${updated}</div>
+        <a class="cta" href="https://entropyzero-gamma.vercel.app" target="_blank">View full index →</a>
+      </div>
+    `;
+  }
+
+  function buildPath(pts) {
+    if (!pts || pts.length < 2) return null;
+    const vals = pts.map(p => parseFloat(p.value));
+    const minV = Math.min(...vals);
+    const maxV = Math.max(...vals);
+    const range = maxV - minV || 1;
+    const W = 400, H = 140, PAD = 10;
+
+    const toX = i => (i / (pts.length - 1)) * W;
+    const toY = v => H - PAD - ((v - minV) / range) * (H - PAD * 2);
+
+    let line = `M ${toX(0)} ${toY(vals[0])}`;
+    for (let i = 1; i < vals.length; i++) {
+      const cx = (toX(i-1) + toX(i)) / 2;
+      line += ` C ${cx} ${toY(vals[i-1])}, ${cx} ${toY(vals[i])}, ${toX(i)} ${toY(vals[i])}`;
+    }
+
+    const area = line + ` L ${toX(vals.length-1)} ${H} L ${toX(0)} ${H} Z`;
+    return { line, area };
+  }
+</script>
+</body>
+</html>

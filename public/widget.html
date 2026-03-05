@@ -7,7 +7,8 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0d0d0d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .widget { width: 100%; max-width: 480px; background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 20px; margin: 16px; }
+    #root { width: 100%; max-width: 500px; margin: 16px; }
+    .widget { background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 20px; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
     .name { font-size: 14px; font-weight: 600; color: #e8e8e8; }
     .ticker { font-family: monospace; font-size: 11px; color: #555; margin-top: 2px; }
@@ -18,102 +19,190 @@
     .range-btn { flex: 1; padding: 5px 0; font-size: 10px; font-weight: 600; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #555; cursor: pointer; transition: all 0.15s; font-family: monospace; }
     .range-btn:hover { color: #aaa; border-color: #444; }
     .range-btn.active { background: #e8e8e8; color: #0d0d0d; border-color: #e8e8e8; }
-    .chart-wrap { width: 100%; height: 150px; margin-bottom: 14px; }
-    svg.chart { width: 100%; height: 100%; overflow: visible; }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; margin-bottom: 14px; }
     .stat { background: #1a1a1a; border: 1px solid #252525; border-radius: 12px; padding: 10px; text-align: center; }
     .stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
     .stat-val { font-size: 13px; font-weight: 600; font-family: monospace; }
     .footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1e1e1e; padding-top: 12px; }
     .brand { font-size: 10px; color: #444; display: flex; align-items: center; gap: 5px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
     .cta { font-size: 10px; color: #555; text-decoration: none; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 10px; transition: all 0.2s; }
     .cta:hover { color: #e8e8e8; border-color: #444; }
     .loading { text-align: center; padding: 48px; color: #444; font-size: 13px; }
     .error { text-align: center; padding: 40px; color: #555; font-size: 12px; line-height: 1.8; }
+    .tooltip-box { background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 10px; padding: 8px 12px; font-size: 11px; }
+    .tooltip-date { color: #666; margin-bottom: 2px; font-size: 10px; }
+    .tooltip-val { font-family: monospace; font-weight: 600; }
   </style>
 </head>
 <body>
-<div class="widget" id="widget">
-  <div class="loading"><div style="font-size:28px;margin-bottom:10px;opacity:0.5">📈</div>Loading index…</div>
+<div id="root">
+  <div class="widget">
+    <div class="loading"><div style="font-size:28px;margin-bottom:10px;opacity:0.5">📈</div>Loading index…</div>
+  </div>
 </div>
+
+<!-- React + ReactDOM -->
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<!-- Recharts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.min.js"></script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  const db = getFirestore(initializeApp({ apiKey:"AIzaSyBuPTw6WpRTWSDhs_L_W9OELFP6ff6Ki0c", authDomain:"copiumai-9f5b6.firebaseapp.com", projectId:"copiumai-9f5b6", storageBucket:"copiumai-9f5b6.firebasestorage.app", messagingSenderId:"164793994267", appId:"1:164793994267:web:f9d3594cca736c7fa67cbe" }));
+
+  const db = getFirestore(initializeApp({
+    apiKey: "AIzaSyBuPTw6WpRTWSDhs_L_W9OELFP6ff6Ki0c",
+    authDomain: "copiumai-9f5b6.firebaseapp.com",
+    projectId: "copiumai-9f5b6",
+    storageBucket: "copiumai-9f5b6.firebasestorage.app",
+    messagingSenderId: "164793994267",
+    appId: "1:164793994267:web:f9d3594cca736c7fa67cbe"
+  }));
+
   const uid = new URLSearchParams(window.location.search).get("uid");
-  const fmt = (n,d=2) => parseFloat(n).toFixed(d);
+  const fmt = (n, d=2) => parseFloat(n).toFixed(d);
 
-  if (!uid) {
-    document.getElementById("widget").innerHTML = `<div class="error">No user ID.<br><small style="color:#333">Add ?uid=YOUR_ID to the URL</small></div>`;
-  } else {
-    getDoc(doc(db,"public",uid)).then(snap => {
-      if (!snap.exists()) { document.getElementById("widget").innerHTML = `<div class="error">Widget not enabled.<br><small style="color:#333">Go to entropyzero → Settings → Portfolio Widget → toggle on</small></div>`; return; }
-      init(snap.data());
-    }).catch(e => { document.getElementById("widget").innerHTML = `<div class="error">Error: ${e.message}</div>`; });
+  const { createElement: h, useState, useMemo } = React;
+  const { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = Recharts;
+
+  function CustomTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0];
+    return h("div", { className: "tooltip-box" },
+      h("div", { className: "tooltip-date" }, d.payload.date),
+      h("div", { className: "tooltip-val", style: { color: d.stroke } }, fmt(d.value))
+    );
   }
 
-  function buildPath(vals) {
-    if (!vals || vals.length < 2) return null;
-    const W=400, H=140, P=8, min=Math.min(...vals), max=Math.max(...vals), range=max-min||1;
-    const x = i => (i/(vals.length-1))*W;
-    const y = v => H-P-((v-min)/range)*(H-P*2);
-    let line = `M ${x(0)} ${y(vals[0])}`;
-    for (let i=1; i<vals.length; i++) { const cx=(x(i-1)+x(i))/2; line+=` C ${cx} ${y(vals[i-1])}, ${cx} ${y(vals[i])}, ${x(i)} ${y(vals[i])}`; }
-    return { line, area: line+` L ${x(vals.length-1)} ${H} L ${x(0)} ${H} Z` };
+  function Widget({ data }) {
+    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData = [], lastUpdated } = data;
+    const RANGES = { "1W": 7, "1M": 30, "3M": 90, "ALL": 99999 };
+    const [range, setRange] = useState("ALL");
+
+    const filtered = useMemo(() => {
+      const days = RANGES[range];
+      if (days >= 99999) return chartData;
+      const cutoff = Date.now() - days * 86400000;
+      const f = chartData.filter(d => new Date(d.date).getTime() >= cutoff);
+      return f.length > 1 ? f : chartData.slice(-days);
+    }, [chartData, range]);
+
+    const isProfit = filtered.length > 1
+      ? filtered[filtered.length-1].value >= filtered[0].value
+      : allTime >= 0;
+    const color = isProfit ? "#22c55e" : "#ef4444";
+    const rangeChange = filtered.length > 1
+      ? ((filtered[filtered.length-1].value - filtered[0].value) / filtered[0].value * 100)
+      : allTime;
+    const gradId = "wg_" + range;
+    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
+
+    return h("div", { className: "widget" },
+      // Header
+      h("div", { className: "header" },
+        h("div", null,
+          h("div", { className: "name" }, name),
+          h("div", { className: "ticker" }, `$${ticker} · ${currency || "USD"}`)
+        ),
+        h("div", { style: { textAlign: "right" } },
+          h("div", { className: "price " + (isProfit ? "pos" : "neg") }, fmt(currentPrice || startPrice)),
+          h("div", { className: "change " + (isProfit ? "pos" : "neg") },
+            (rangeChange >= 0 ? "+" : "") + fmt(rangeChange) + "% " + (range === "ALL" ? "all-time" : "this period")
+          )
+        )
+      ),
+
+      // Range buttons
+      h("div", { className: "ranges" },
+        Object.keys(RANGES).map(r =>
+          h("button", {
+            key: r,
+            className: "range-btn" + (range === r ? " active" : ""),
+            onClick: () => setRange(r)
+          }, r)
+        )
+      ),
+
+      // Chart — exact same Recharts setup as main app
+      h(ResponsiveContainer, { width: "100%", height: 200 },
+        h(AreaChart, { data: filtered },
+          h("defs", null,
+            h("linearGradient", { id: gradId, x1: "0", y1: "0", x2: "0", y2: "1" },
+              h("stop", { offset: "5%", stopColor: color, stopOpacity: 0.18 }),
+              h("stop", { offset: "95%", stopColor: color, stopOpacity: 0.01 })
+            )
+          ),
+          h(CartesianGrid, { strokeDasharray: "3 3", stroke: "#111" }),
+          h(XAxis, {
+            dataKey: "date", stroke: "#111",
+            tick: { fill: "#2a2a2a", fontSize: 9 },
+            tickFormatter: v => new Date(v).toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+          }),
+          h(YAxis, {
+            stroke: "#111", tick: { fill: "#2a2a2a", fontSize: 9 },
+            domain: ["dataMin - 20", "dataMax + 20"]
+          }),
+          h(Tooltip, { content: h(CustomTooltip) }),
+          h(Area, {
+            type: "monotone", dataKey: "value",
+            stroke: color, strokeWidth: 1.8,
+            fill: `url(#${gradId})`,
+            dot: false,
+            activeDot: { r: 4, fill: color, stroke: "#080808", strokeWidth: 2 }
+          })
+        )
+      ),
+
+      // Stats
+      h("div", { className: "stats" },
+        h("div", { className: "stat" },
+          h("div", { className: "stat-label" }, "IPO"),
+          h("div", { className: "stat-val", style: { color: "#888" } }, fmt(startPrice))
+        ),
+        h("div", { className: "stat" },
+          h("div", { className: "stat-label" }, "Current"),
+          h("div", { className: "stat-val " + (isProfit ? "pos" : "neg") }, fmt(currentPrice || startPrice))
+        ),
+        h("div", { className: "stat" },
+          h("div", { className: "stat-label" }, "🔥 Streak"),
+          h("div", { className: "stat-val", style: { color: "#f97316" } }, (streak || 0) + "d")
+        )
+      ),
+
+      // Footer
+      h("div", { className: "footer" },
+        h("div", { className: "brand" },
+          h("span", { className: "dot" }),
+          "entropyzero · " + updated
+        ),
+        h("a", { className: "cta", href: "https://entropyzero.vercel.app", target: "_blank" }, "View full index →")
+      )
+    );
   }
 
-  function drawChart(chartData, days, color) {
-    const pts = days>=999 ? chartData : chartData.slice(-days);
-    const vals = pts.map(p => parseFloat(p.value));
-    const svg = document.getElementById("main-chart");
-    if (!svg) return;
-    const path = buildPath(vals);
-    svg.innerHTML = path
-      ? `<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stop-color="${color}" stop-opacity="0.2"/><stop offset="95%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="${path.area}" fill="url(#g1)"/><path d="${path.line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`
-      : `<text x="200" y="75" text-anchor="middle" fill="#333" font-size="11">No data for this range</text>`;
-    const rc = vals.length>1 ? ((vals[vals.length-1]-vals[0])/vals[0]*100) : 0;
-    const el = document.getElementById("rchange");
-    if (el) { el.textContent = (rc>=0?"+":"")+fmt(rc)+"% this period"; el.className="change "+(rc>=0?"pos":"neg"); }
+  function App() {
+    const [data, setData] = useState(null);
+    const [error, setError] = useState(null);
+
+    if (!uid) return h("div", { className: "widget" }, h("div", { className: "error" }, "No user ID. Add ?uid=YOUR_ID to the URL"));
+
+    React.useEffect(() => {
+      getDoc(doc(db, "public", uid))
+        .then(snap => {
+          if (!snap.exists()) { setError("Widget not enabled. Go to entropyzero → Settings → Portfolio Widget → toggle on."); return; }
+          setData(snap.data());
+        })
+        .catch(e => setError(e.message));
+    }, []);
+
+    if (error) return h("div", { className: "widget" }, h("div", { className: "error" }, error));
+    if (!data) return h("div", { className: "widget" }, h("div", { className: "loading" }, h("div", { style: { fontSize: "28px", marginBottom: "10px", opacity: 0.5 } }, "📈"), "Loading index…"));
+    return h(Widget, { data });
   }
 
-  function init(data) {
-    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData=[], lastUpdated } = data;
-    const isPos = allTime>=0, color = isPos?"#22c55e":"#ef4444";
-    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "—";
-    let active = 7;
-    document.getElementById("widget").innerHTML = `
-      <div class="header">
-        <div><div class="name">${name}</div><div class="ticker">$${ticker} · ${currency||"USD"}</div></div>
-        <div style="text-align:right">
-          <div class="price ${isPos?"pos":"neg"}">${fmt(currentPrice||startPrice)}</div>
-          <div id="rchange" class="change ${isPos?"pos":"neg"}">${isPos?"+":""}${fmt(allTime)}% all-time</div>
-        </div>
-      </div>
-      <div class="ranges">
-        <button class="range-btn active" data-d="7">1W</button>
-        <button class="range-btn" data-d="30">1M</button>
-        <button class="range-btn" data-d="90">3M</button>
-        <button class="range-btn" data-d="999">ALL</button>
-      </div>
-      <div class="chart-wrap"><svg id="main-chart" class="chart" viewBox="0 0 400 140" preserveAspectRatio="none"></svg></div>
-      <div class="stats">
-        <div class="stat"><div class="stat-label">IPO</div><div class="stat-val" style="color:#888">${fmt(startPrice)}</div></div>
-        <div class="stat"><div class="stat-label">Current</div><div class="stat-val ${isPos?"pos":"neg"}">${fmt(currentPrice||startPrice)}</div></div>
-        <div class="stat"><div class="stat-label">🔥 Streak</div><div class="stat-val" style="color:#f97316">${streak||0}d</div></div>
-      </div>
-      <div class="footer">
-        <div class="brand"><span class="dot"></span>entropyzero · ${updated}</div>
-        <a class="cta" href="https://entropyzero.vercel.app" target="_blank">View full index →</a>
-      </div>`;
-    drawChart(chartData, active, color);
-    document.querySelectorAll(".range-btn").forEach(btn => btn.addEventListener("click", () => {
-      active = parseInt(btn.dataset.d);
-      document.querySelectorAll(".range-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      drawChart(chartData, active, color);
-    }));
-  }
+  ReactDOM.createRoot(document.getElementById("root")).render(h(App));
 </script>
 </body>
 </html>

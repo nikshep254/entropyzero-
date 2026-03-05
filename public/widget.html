@@ -6,9 +6,8 @@
   <title>entropyzero widget</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0d0d0d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    #root { width: 100%; max-width: 500px; margin: 16px; }
-    .widget { background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 20px; }
+    body { background: #0d0d0d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8e8e8; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .widget { width: 100%; max-width: 500px; background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 20px; margin: 16px; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
     .name { font-size: 14px; font-weight: 600; color: #e8e8e8; }
     .ticker { font-family: monospace; font-size: 11px; color: #555; margin-top: 2px; }
@@ -19,7 +18,9 @@
     .range-btn { flex: 1; padding: 5px 0; font-size: 10px; font-weight: 600; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #555; cursor: pointer; transition: all 0.15s; font-family: monospace; }
     .range-btn:hover { color: #aaa; border-color: #444; }
     .range-btn.active { background: #e8e8e8; color: #0d0d0d; border-color: #e8e8e8; }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; margin-bottom: 14px; }
+    .chart-area { width: 100%; height: 180px; margin-bottom: 14px; }
+    .chart-area svg { width: 100%; height: 100%; display: block; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
     .stat { background: #1a1a1a; border: 1px solid #252525; border-radius: 12px; padding: 10px; text-align: center; }
     .stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
     .stat-val { font-size: 13px; font-weight: 600; font-family: monospace; }
@@ -28,25 +29,22 @@
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
     .cta { font-size: 10px; color: #555; text-decoration: none; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 10px; transition: all 0.2s; }
     .cta:hover { color: #e8e8e8; border-color: #444; }
-    .loading { text-align: center; padding: 48px; color: #444; font-size: 13px; }
-    .error { text-align: center; padding: 40px; color: #555; font-size: 12px; line-height: 1.8; }
-    .tooltip-box { background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 10px; padding: 8px 12px; font-size: 11px; }
-    .tooltip-date { color: #666; margin-bottom: 2px; font-size: 10px; }
-    .tooltip-val { font-family: monospace; font-weight: 600; }
+    .center { text-align: center; padding: 48px; color: #444; font-size: 13px; line-height: 2; }
+    .tooltip {
+      position: absolute; background: #1e1e1e; border: 1px solid #2e2e2e;
+      border-radius: 8px; padding: 6px 10px; font-size: 11px; pointer-events: none;
+      display: none; white-space: nowrap; z-index: 10;
+    }
+    .chart-wrap { position: relative; }
   </style>
 </head>
 <body>
-<div id="root">
-  <div class="widget">
-    <div class="loading"><div style="font-size:28px;margin-bottom:10px;opacity:0.5">📈</div>Loading index…</div>
+<div class="widget" id="app">
+  <div class="center">
+    <div style="font-size:28px;margin-bottom:8px;opacity:0.4">📈</div>
+    Loading…
   </div>
 </div>
-
-<!-- React + ReactDOM -->
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<!-- Recharts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.min.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -63,146 +61,199 @@
 
   const uid = new URLSearchParams(window.location.search).get("uid");
   const fmt = (n, d=2) => parseFloat(n).toFixed(d);
+  const app = document.getElementById("app");
 
-  const { createElement: h, useState, useMemo } = React;
-  const { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = Recharts;
-
-  function CustomTooltip({ active, payload }) {
-    if (!active || !payload?.length) return null;
-    const d = payload[0];
-    return h("div", { className: "tooltip-box" },
-      h("div", { className: "tooltip-date" }, d.payload.date),
-      h("div", { className: "tooltip-val", style: { color: d.stroke } }, fmt(d.value))
-    );
+  function err(msg) {
+    app.innerHTML = `<div class="center">${msg}</div>`;
   }
 
-  function Widget({ data }) {
-    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData = [], lastUpdated } = data;
-    const RANGES = { "1W": 7, "1M": 30, "3M": 90, "ALL": 99999 };
-    const [range, setRange] = useState("ALL");
+  if (!uid) return err("No user ID.<br><small style='color:#333'>Add ?uid=YOUR_ID to the URL</small>");
 
-    const filtered = useMemo(() => {
+  getDoc(doc(db, "public", uid))
+    .then(snap => {
+      if (!snap.exists()) return err("Widget not enabled.<br><small style='color:#333'>Settings → Portfolio Widget → toggle on</small>");
+      render(snap.data());
+    })
+    .catch(e => err("Failed to load: " + e.message));
+
+  // ── SVG chart — same curve style as Recharts monotone ─────────────────────
+  function buildSVG(pts, color) {
+    if (!pts || pts.length < 2) return `<text x="50%" y="50%" text-anchor="middle" fill="#333" font-size="11" dominant-baseline="middle">No data</text>`;
+    const W = 460, H = 150, PX = 0, PY = 12;
+    const vals = pts.map(p => parseFloat(p.value));
+    const min = Math.min(...vals) - 5;
+    const max = Math.max(...vals) + 5;
+    const range = max - min || 1;
+    const x = i => PX + (i / (pts.length - 1)) * (W - PX * 2);
+    const y = v => PY + (1 - (v - min) / range) * (H - PY * 2);
+
+    // monotone cubic like recharts
+    let d = `M ${x(0)} ${y(vals[0])}`;
+    for (let i = 1; i < vals.length; i++) {
+      const x0 = x(i-1), y0 = y(vals[i-1]), x1 = x(i), y1 = y(vals[i]);
+      const cpx = (x0 + x1) / 2;
+      d += ` C ${cpx} ${y0}, ${cpx} ${y1}, ${x1} ${y1}`;
+    }
+    const area = d + ` L ${x(vals.length-1)} ${H} L ${x(0)} ${H} Z`;
+
+    // x-axis labels (pick ~4 evenly spaced)
+    const labelCount = Math.min(4, pts.length);
+    const labelIdxs = Array.from({length: labelCount}, (_, i) => Math.round(i * (pts.length - 1) / (labelCount - 1)));
+    const labels = labelIdxs.map(i => {
+      const d = new Date(pts[i].date);
+      const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      return `<text x="${x(i)}" y="${H + 14}" text-anchor="middle" fill="#2a2a2a" font-size="9">${label}</text>`;
+    }).join("");
+
+    return `
+      <defs>
+        <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stop-color="${color}" stop-opacity="0.18"/>
+          <stop offset="95%" stop-color="${color}" stop-opacity="0.01"/>
+        </linearGradient>
+        <clipPath id="clip"><rect x="0" y="0" width="${W}" height="${H}"/></clipPath>
+      </defs>
+      <g clip-path="url(#clip)">
+        <path d="${area}" fill="url(#wg)"/>
+        <path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      ${labels}
+    `;
+  }
+
+  // ── Tooltip on hover ───────────────────────────────────────────────────────
+  function attachTooltip(svgEl, pts, color) {
+    if (!pts || pts.length < 2) return;
+    const W = 460, H = 150, PY = 12;
+    const vals = pts.map(p => parseFloat(p.value));
+    const min = Math.min(...vals) - 5, max = Math.max(...vals) + 5, range = max - min || 1;
+    const x = i => (i / (pts.length - 1)) * W;
+    const y = v => PY + (1 - (v - min) / range) * (H - PY * 2);
+
+    const tip = document.getElementById("tip");
+    const dot = document.getElementById("hover-dot");
+
+    svgEl.addEventListener("mousemove", e => {
+      const rect = svgEl.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width * W;
+      const idx = Math.max(0, Math.min(pts.length - 1, Math.round(px / W * (pts.length - 1))));
+      const val = vals[idx];
+      const sx = x(idx), sy = y(val);
+
+      dot.setAttribute("cx", sx); dot.setAttribute("cy", sy);
+      dot.setAttribute("fill", color); dot.style.display = "block";
+
+      tip.style.display = "block";
+      tip.innerHTML = `<span style="color:#666;font-size:10px">${pts[idx].date}</span><br><span style="color:${color};font-family:monospace;font-weight:600">${fmt(val)}</span>`;
+      const tx = (sx / W) * rect.width + rect.left - document.getElementById("app").getBoundingClientRect().left;
+      tip.style.left = Math.min(tx, rect.width - 120) + "px";
+      tip.style.top = (sy / H) * rect.height + "px";
+    });
+    svgEl.addEventListener("mouseleave", () => { tip.style.display = "none"; dot.style.display = "none"; });
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────
+  function render(data) {
+    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData = [], lastUpdated } = data;
+    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
+    let activeRange = "ALL";
+    const RANGES = { "1W": 7, "1M": 30, "3M": 90, "ALL": 99999 };
+
+    function getFiltered(range) {
       const days = RANGES[range];
       if (days >= 99999) return chartData;
       const cutoff = Date.now() - days * 86400000;
       const f = chartData.filter(d => new Date(d.date).getTime() >= cutoff);
       return f.length > 1 ? f : chartData.slice(-days);
-    }, [chartData, range]);
+    }
 
-    const isProfit = filtered.length > 1
-      ? filtered[filtered.length-1].value >= filtered[0].value
-      : allTime >= 0;
-    const color = isProfit ? "#22c55e" : "#ef4444";
-    const rangeChange = filtered.length > 1
-      ? ((filtered[filtered.length-1].value - filtered[0].value) / filtered[0].value * 100)
-      : allTime;
-    const gradId = "wg_" + range;
-    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
+    function drawAll(range) {
+      const pts = getFiltered(range);
+      const isProfit = pts.length > 1 ? pts[pts.length-1].value >= pts[0].value : allTime >= 0;
+      const color = isProfit ? "#22c55e" : "#ef4444";
+      const rc = pts.length > 1 ? ((pts[pts.length-1].value - pts[0].value) / pts[0].value * 100) : allTime;
 
-    return h("div", { className: "widget" },
-      // Header
-      h("div", { className: "header" },
-        h("div", null,
-          h("div", { className: "name" }, name),
-          h("div", { className: "ticker" }, `$${ticker} · ${currency || "USD"}`)
-        ),
-        h("div", { style: { textAlign: "right" } },
-          h("div", { className: "price " + (isProfit ? "pos" : "neg") }, fmt(currentPrice || startPrice)),
-          h("div", { className: "change " + (isProfit ? "pos" : "neg") },
-            (rangeChange >= 0 ? "+" : "") + fmt(rangeChange) + "% " + (range === "ALL" ? "all-time" : "this period")
-          )
-        )
-      ),
+      // Update price/change
+      document.getElementById("w-price").textContent = fmt(currentPrice || startPrice);
+      document.getElementById("w-price").className = "price " + (isProfit ? "pos" : "neg");
+      document.getElementById("w-change").textContent = (rc >= 0 ? "+" : "") + fmt(rc) + "% " + (range === "ALL" ? "all-time" : "this period");
+      document.getElementById("w-change").className = "change " + (isProfit ? "pos" : "neg");
 
-      // Range buttons
-      h("div", { className: "ranges" },
-        Object.keys(RANGES).map(r =>
-          h("button", {
-            key: r,
-            className: "range-btn" + (range === r ? " active" : ""),
-            onClick: () => setRange(r)
-          }, r)
-        )
-      ),
+      // Update chart
+      const svgEl = document.getElementById("main-svg");
+      svgEl.innerHTML = buildSVG(pts, color);
+      // Re-add hover dot element
+      const dotEl = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dotEl.setAttribute("id", "hover-dot");
+      dotEl.setAttribute("r", "4");
+      dotEl.setAttribute("stroke", "#080808");
+      dotEl.setAttribute("stroke-width", "2");
+      dotEl.style.display = "none";
+      svgEl.appendChild(dotEl);
+      attachTooltip(svgEl, pts, color);
 
-      // Chart — exact same Recharts setup as main app
-      h(ResponsiveContainer, { width: "100%", height: 200 },
-        h(AreaChart, { data: filtered },
-          h("defs", null,
-            h("linearGradient", { id: gradId, x1: "0", y1: "0", x2: "0", y2: "1" },
-              h("stop", { offset: "5%", stopColor: color, stopOpacity: 0.18 }),
-              h("stop", { offset: "95%", stopColor: color, stopOpacity: 0.01 })
-            )
-          ),
-          h(CartesianGrid, { strokeDasharray: "3 3", stroke: "#111" }),
-          h(XAxis, {
-            dataKey: "date", stroke: "#111",
-            tick: { fill: "#2a2a2a", fontSize: 9 },
-            tickFormatter: v => new Date(v).toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-          }),
-          h(YAxis, {
-            stroke: "#111", tick: { fill: "#2a2a2a", fontSize: 9 },
-            domain: ["dataMin - 20", "dataMax + 20"]
-          }),
-          h(Tooltip, { content: h(CustomTooltip) }),
-          h(Area, {
-            type: "monotone", dataKey: "value",
-            stroke: color, strokeWidth: 1.8,
-            fill: `url(#${gradId})`,
-            dot: false,
-            activeDot: { r: 4, fill: color, stroke: "#080808", strokeWidth: 2 }
-          })
-        )
-      ),
+      // Update range buttons
+      document.querySelectorAll(".range-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.r === range);
+      });
+    }
 
-      // Stats
-      h("div", { className: "stats" },
-        h("div", { className: "stat" },
-          h("div", { className: "stat-label" }, "IPO"),
-          h("div", { className: "stat-val", style: { color: "#888" } }, fmt(startPrice))
-        ),
-        h("div", { className: "stat" },
-          h("div", { className: "stat-label" }, "Current"),
-          h("div", { className: "stat-val " + (isProfit ? "pos" : "neg") }, fmt(currentPrice || startPrice))
-        ),
-        h("div", { className: "stat" },
-          h("div", { className: "stat-label" }, "🔥 Streak"),
-          h("div", { className: "stat-val", style: { color: "#f97316" } }, (streak || 0) + "d")
-        )
-      ),
+    app.innerHTML = `
+      <div class="header">
+        <div>
+          <div class="name">${name}</div>
+          <div class="ticker">$${ticker} · ${currency || "USD"}</div>
+        </div>
+        <div style="text-align:right">
+          <div id="w-price" class="price pos">${fmt(currentPrice || startPrice)}</div>
+          <div id="w-change" class="change pos">+${fmt(allTime)}% all-time</div>
+        </div>
+      </div>
 
-      // Footer
-      h("div", { className: "footer" },
-        h("div", { className: "brand" },
-          h("span", { className: "dot" }),
-          "entropyzero · " + updated
-        ),
-        h("a", { className: "cta", href: "https://entropyzero.vercel.app", target: "_blank" }, "View full index →")
-      )
-    );
+      <div class="ranges">
+        <button class="range-btn" data-r="1W">1W</button>
+        <button class="range-btn" data-r="1M">1M</button>
+        <button class="range-btn" data-r="3M">3M</button>
+        <button class="range-btn active" data-r="ALL">ALL</button>
+      </div>
+
+      <div class="chart-wrap">
+        <div id="tip" class="tooltip"></div>
+        <div class="chart-area">
+          <svg id="main-svg" viewBox="0 0 460 165" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">IPO</div>
+          <div class="stat-val" style="color:#888">${fmt(startPrice)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Current</div>
+          <div class="stat-val ${allTime >= 0 ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">🔥 Streak</div>
+          <div class="stat-val" style="color:#f97316">${streak || 0}d</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="brand"><span class="dot"></span>entropyzero · ${updated}</div>
+        <a class="cta" href="https://entropyzero.vercel.app" target="_blank">View full index →</a>
+      </div>
+    `;
+
+    drawAll(activeRange);
+
+    document.querySelectorAll(".range-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeRange = btn.dataset.r;
+        drawAll(activeRange);
+      });
+    });
   }
-
-  function App() {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-
-    if (!uid) return h("div", { className: "widget" }, h("div", { className: "error" }, "No user ID. Add ?uid=YOUR_ID to the URL"));
-
-    React.useEffect(() => {
-      getDoc(doc(db, "public", uid))
-        .then(snap => {
-          if (!snap.exists()) { setError("Widget not enabled. Go to entropyzero → Settings → Portfolio Widget → toggle on."); return; }
-          setData(snap.data());
-        })
-        .catch(e => setError(e.message));
-    }, []);
-
-    if (error) return h("div", { className: "widget" }, h("div", { className: "error" }, error));
-    if (!data) return h("div", { className: "widget" }, h("div", { className: "loading" }, h("div", { style: { fontSize: "28px", marginBottom: "10px", opacity: 0.5 } }, "📈"), "Loading index…"));
-    return h(Widget, { data });
-  }
-
-  ReactDOM.createRoot(document.getElementById("root")).render(h(App));
 </script>
 </body>
 </html>

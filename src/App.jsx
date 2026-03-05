@@ -716,7 +716,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
           currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
           allTime: allTimeVal,
           streak,
-          chartData: chartData.slice(-90).map(d => ({ date: d.date, value: d.value })),
+          chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
         })
       : Promise.resolve();
     Promise.all([saveAll, saveWidget])
@@ -1508,7 +1508,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                           currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
                           allTime,
                           streak,
-                          chartData: chartData.slice(-90).map(d => ({ date: d.date, value: d.value })),
+                          chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
                         });
                         setWidgetEnabled(true);
                       }

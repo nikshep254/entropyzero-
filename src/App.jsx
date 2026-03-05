@@ -84,6 +84,24 @@ async function saveLastWeeklyReport(uid, data) {
   } catch (_) {}
 }
 
+async function publishPublicWidget(uid, data) {
+  if (!uid) return;
+  await setDoc(doc(db, "public", uid), { ...data, lastUpdated: Date.now() });
+}
+
+async function unpublishPublicWidget(uid) {
+  if (!uid) return;
+  try { await deleteDoc(doc(db, "public", uid)); } catch (_) {}
+}
+
+async function getWidgetEnabled(uid) {
+  if (!uid) return false;
+  try {
+    const snap = await getDoc(doc(db, "public", uid));
+    return snap.exists();
+  } catch (_) { return false; }
+}
+
 // ── utils ────────────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).slice(2, 9);
 const today = () => new Date().toISOString().split("T")[0];
@@ -673,6 +691,9 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [newGoal, setNewGoal]             = useState({ title: "", sector: "academics", reward: 0 });
   const [capsule, setCapsule]             = useState({ message: "", unlockDate: "" });
   const [moreTab, setMoreTab]             = useState("heatmap");
+  const [widgetEnabled, setWidgetEnabled] = useState(false);
+  const [widgetLoading, setWidgetLoading] = useState(false);
+  const [widgetCopied, setWidgetCopied]   = useState("");
   const [saving, setSaving]               = useState(false);
   const [lastSaved, setLastSaved]         = useState(null);
 
@@ -680,7 +701,21 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   useEffect(() => {
     if (!uid) return;
     setSaving(true);
-    saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules })
+    const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
+    const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
+    const saveWidget = widgetEnabled
+      ? publishPublicWidget(uid, {
+          name: config.name,
+          ticker: config.ticker || config.name.slice(0,4).toUpperCase(),
+          currency: CURRENCIES[config.country]?.code || "USD",
+          startPrice: config.startPrice,
+          currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
+          allTime: allTimeVal,
+          streak,
+          chartData: chartData.slice(-90).map(d => ({ date: d.date, value: d.value })),
+        })
+      : Promise.resolve();
+    Promise.all([saveAll, saveWidget])
       .then(() => { setLastSaved(new Date()); setSaving(false); })
       .catch(e => { console.error("Save error:", e); setSaving(false); });
   }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
@@ -887,6 +922,12 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
     }
     setGeneratingReport(false);
   };
+
+  // Load widget enabled state
+  useEffect(() => {
+    if (!uid) return;
+    getWidgetEnabled(uid).then(setWidgetEnabled);
+  }, [uid]);
 
   // Auto-generate weekly summary on mount if due (once only)
   const weeklyTriggered = useRef(false);
@@ -1432,6 +1473,103 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 </label>
               </div>
             </Card>
+            <Card>
+              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-3 flex items-center gap-2">
+                <span className="text-base">🔌</span> Portfolio Widget
+              </h2>
+              <p className="text-xs text-[#666] mb-4 leading-relaxed">
+                Embed your live life index chart on any website — your portfolio, Notion, GitHub profile, anywhere.
+                Your name, ticker, chart and stats are made publicly readable when enabled.
+              </p>
+
+              {/* Toggle */}
+              <div className="flex items-center justify-between bg-[#181818] border border-[#252525] rounded-xl px-4 py-3 mb-4">
+                <div>
+                  <p className="text-sm text-[#ddd] font-medium">Enable public widget</p>
+                  <p className="text-xs text-[#666] mt-0.5">{widgetEnabled ? "Your chart is publicly embeddable" : "Widget is private"}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setWidgetLoading(true);
+                    try {
+                      if (widgetEnabled) {
+                        await unpublishPublicWidget(uid);
+                        setWidgetEnabled(false);
+                      } else {
+                        await publishPublicWidget(uid, {
+                          name: config.name,
+                          ticker,
+                          currency: CURRENCIES[config.country]?.code || "USD",
+                          startPrice: config.startPrice,
+                          currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
+                          allTime,
+                          streak,
+                          chartData: chartData.slice(-90).map(d => ({ date: d.date, value: d.value })),
+                        });
+                        setWidgetEnabled(true);
+                      }
+                    } catch(e) { alert("Error: " + e.message); }
+                    setWidgetLoading(false);
+                  }}
+                  disabled={widgetLoading}
+                  className={`relative w-12 h-6 rounded-full transition-all duration-300 ${widgetEnabled ? "bg-green-600" : "bg-[#2a2a2a]"} disabled:opacity-50`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${widgetEnabled ? "translate-x-6" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              {widgetEnabled && (
+                <div className="space-y-3">
+                  {/* Embed codes */}
+                  {[
+                    {
+                      label: "iframe embed",
+                      desc: "Paste into any HTML file or website builder",
+                      code: `<iframe src="https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}" width="480" height="280" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#0d0d0d"></iframe>`,
+                    },
+                    {
+                      label: "Widget URL",
+                      desc: "Direct link to share or open in browser",
+                      code: `https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}`,
+                    },
+                  ].map(({ label, desc, code }) => (
+                    <div key={label} className="bg-[#141414] border border-[#252525] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-[#aaa]">{label}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(code);
+                            setWidgetCopied(label);
+                            setTimeout(() => setWidgetCopied(""), 2000);
+                          }}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#202020] border border-[#2e2e2e] text-[#777] hover:text-[#e8e8e8] hover:border-[#444] transition-all"
+                        >
+                          {widgetCopied === label ? "✓ Copied!" : "Copy"}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-[#555] mb-2">{desc}</p>
+                      <code className="text-[9px] text-[#555] break-all leading-relaxed block font-mono">{code}</code>
+                    </div>
+                  ))}
+
+                  <div className="bg-[#181818] border border-[#252525] rounded-xl p-3">
+                    <p className="text-xs font-semibold text-[#aaa] mb-2">Preview</p>
+                    <iframe
+                      src={`https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}`}
+                      width="100%"
+                      height="280"
+                      frameBorder="0"
+                      style={{ borderRadius: "12px", border: "1px solid #252525", background: "#0d0d0d" }}
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-[#555] leading-relaxed">
+                    ⚠️ Widget data updates every time you save. Toggle off to remove public access instantly.
+                  </p>
+                </div>
+              )}
+            </Card>
+
             <Card>
               <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><AlertTriangle size={15} className="text-red-900" />Danger Zone</h2>
               <p className="text-xs text-[#777] mb-4">Permanently delete all data and restart.</p>

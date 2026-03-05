@@ -15,7 +15,7 @@ async function callAI(systemPrompt, messages) {
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${OR_KEY}`,
-      "HTTP-Referer": "https://entropyzero-gamma.vercel.app",
+      "HTTP-Referer": "https://entropyzero.vercel.app",
       "X-Title": "entropyzero",
     },
     body: JSON.stringify({
@@ -266,6 +266,10 @@ const BuilderCard = () => (
           <a href="https://nikshep.vercel.app" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[10px] text-[#a0906a] hover:text-[#ffd700] transition-colors justify-end">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
             nikshep.vercel.app
+          </a>
+          <a href="https://entropyzero.vercel.app" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[10px] text-[#a0906a] hover:text-[#ffd700] transition-colors justify-end">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            entropyzero.vercel.app
           </a>
         </div>
       </div>
@@ -1525,12 +1529,12 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     {
                       label: "iframe embed",
                       desc: "Paste into any HTML file or website builder",
-                      code: `<iframe src="https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}" width="480" height="280" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#0d0d0d"></iframe>`,
+                      code: `<iframe src="https://entropyzero.vercel.app/widget.html?uid=${uid}" width="480" height="280" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#0d0d0d"></iframe>`,
                     },
                     {
                       label: "Widget URL",
                       desc: "Direct link to share or open in browser",
-                      code: `https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}`,
+                      code: `https://entropyzero.vercel.app/widget.html?uid=${uid}`,
                     },
                   ].map(({ label, desc, code }) => (
                     <div key={label} className="bg-[#141414] border border-[#252525] rounded-xl p-3">
@@ -1555,7 +1559,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                   <div className="bg-[#181818] border border-[#252525] rounded-xl p-3">
                     <p className="text-xs font-semibold text-[#aaa] mb-2">Preview</p>
                     <iframe
-                      src={`https://entropyzero-gamma.vercel.app/widget.html?uid=${uid}`}
+                      src={`https://entropyzero.vercel.app/widget.html?uid=${uid}`}
                       width="100%"
                       height="280"
                       frameBorder="0"

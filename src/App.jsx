@@ -5,11 +5,11 @@ import { auth, db, googleProvider } from "./firebase.js";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import { TrendingUp, Activity, Plus, Trash2, Send, ChevronRight, ChevronLeft, Check, X, Download, Upload, BarChart2, BookOpen, Settings, Zap, Newspaper, Star, AlertTriangle, Brain, Target, Calendar, Award, Flame, Moon, Layers, Info } from "lucide-react";
 
-// ── AI: OpenRouter (primary) + Anthropic direct fallback ────────────────────
+// ── AI ──────────────────────────────────────────────────────────────────────
 const OR_KEY = import.meta.env.VITE_OPENROUTER_KEY || "";
 
 async function callAI(systemPrompt, messages) {
-  if (!OR_KEY) throw new Error("No API key. Set VITE_OPENROUTER_KEY in Vercel environment variables.");
+  if (!OR_KEY) throw new Error("entropyzero AI unavailable. Check your environment configuration.");
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -24,7 +24,7 @@ async function callAI(systemPrompt, messages) {
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
   });
-  if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
+  if (!res.ok) throw new Error(`AI error: ${res.status}`);
   const d = await res.json();
   const text = d.choices?.[0]?.message?.content;
   if (!text) throw new Error("Empty response from AI.");
@@ -155,7 +155,7 @@ const FEATURE_INFO = {
   streak:       { title: "Streak",                 body: "Consecutive days you've logged at least one habit or event. Every 7 days earns you a dividend bonus — your index gets a free bump." },
   chart:        { title: "Performance Chart",      body: "Your index plotted over time. Green fill = profitable range, red fill = losing range. Phase markers (emoji flags) show life chapters." },
   technicals:   { title: "Technicals",             body: "RSI measures momentum (>70 = hot, <30 = oversold), SMA 14/30 are moving averages, volatility shows consistency. HOLD/BUY/SELL is based on 30-day momentum." },
-  sectors:      { title: "Sector Breakdown",       body: "Radar chart across 5 life areas: Health, Academics, Social, Mental, Skills. Each sector score is driven by the habits and skills you've logged in that category." },
+  sectors:      { title: "Sector Breakdown",       body: "A radar chart showing how balanced your life is across 5 areas: 💪 Health (exercise, sleep, diet), 📚 Academics (study, reading, learning), 🤝 Social (relationships, events, connections), 🧠 Mental (mindfulness, therapy, journalling), and ⚡ Skills (practice, projects, certifications). A score of 50 is baseline — habits you log push each sector up or down. A lopsided chart means you're neglecting an area. Aim for a full pentagon." },
   balanceSheet: { title: "Balance Sheet",          body: "Assets = points from skills (higher level = more pts). Debt = points from weaknesses (higher severity = more pts). Net Worth = Assets minus Debt." },
   habits:       { title: "Habits",                 body: "Your daily drivers. Positive habits increase your index by their set %, negative ones reduce it. Log them daily to build streaks and compound your index." },
   press:        { title: "Press Releases",         body: "Write entries about major life events. Each one moves your index and creates a permanent journal of your story." },
@@ -167,7 +167,7 @@ const FEATURE_INFO = {
   coach:        { title: "AI Life Coach",          body: "An AI with full context on your data — index, habits, skills, weaknesses, phases. Ask for pattern analysis, goal advice, or a life review." },
   capsule:      { title: "Time Capsule",           body: "Write a message that locks until a future date. On that date, a banner appears with your message. Perfect for letters to your future self." },
   mood:         { title: "Mood Tracker",           body: "Log how you feel today. Each mood choice makes a tiny index adjustment and gets tagged to that chart point. Hover chart points to see mood history." },
-  pnl:          { title: "Monthly P&L",            body: "Profit & Loss per month. Green = net positive, red = net negative. Count shows how many times you logged. Consistency > intensity." },
+  pnl:          { title: "Monthly P&L",            body: "Profit & Loss — how your life index moved each calendar month. Green bar = you ended the month higher than you started (net positive habits/events). Red bar = net negative month. The number shows how many points you gained or lost. The count shows how many times you logged. A green month with low count means a few big wins. A red month with high count means lots of small losses — fix the habits, not the frequency." },
 };
 
 // ── Info tooltip ─────────────────────────────────────────────────────────────
@@ -560,7 +560,7 @@ const SectorRadar = ({ sectorScores }) => {
 
 // ── AI Coach ──────────────────────────────────────────────────────────────────
 const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, habits, uid }) => {
-  const WELCOME = { role: "assistant", content: `Hey ${config.name}! I'm your AI Life Coach. I have full context on your index (${fmt(lifeIndex)}), ${phases.length} phases, ${skills.length} skills, ${weaknesses.length} weaknesses and ${orderBook.length} logged events. Ask me anything.` };
+  const WELCOME = { role: "assistant", content: `Hey ${config.name}! I'm your entropyzero AI. I have full context on your index (${fmt(lifeIndex)}), ${phases.length} phases, ${skills.length} skills, ${weaknesses.length} weaknesses and ${orderBook.length} logged events. Ask me anything.` };
   const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -593,7 +593,8 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
     setMessages(p => [...p, userMsg]); setInput(""); setLoading(true);
     if (uid) saveCoachMessage(uid, userMsg);
     try {
-      const ctx = `Elite life coach AI. User: Name=${config.name}, Country=${config.country}, Index=${fmt(lifeIndex)}, AllTime=${fmt(((lifeIndex - config.startPrice) / config.startPrice) * 100)}%, Phases=${phases.map(p => `${p.name}(${p.start}–${p.end || "now"})`).join(",") || "none"}, Skills=${skills.map(s => `${s.name}(${SKILL_LEVELS[s.level]})`).join(",") || "none"}, Weaknesses=${weaknesses.map(w => `${w.name}(${DEBT_SEVERITY[w.severity]})`).join(",") || "none"}, Habits=${habits.map(h => `${h.name}(${h.impact > 0 ? "+" : ""}${h.impact}%)`).join(",") || "none"}, Recent=${orderBook.slice(0, 10).map(o => `${o.desc}:${o.change > 0 ? "+" : ""}${fmt(o.change)}%`).join(",") || "none"}. Reply max 180 words, be direct and data-driven.`;
+      const interestTopics = [...new Set((interests||[]).flatMap(i => i.topics))].slice(0,8).join(",") || "none";
+      const ctx = `Elite life coach AI for entropyzero. User: Name=${config.name}, Country=${config.country}, Index=${fmt(lifeIndex)}, AllTime=${fmt(((lifeIndex - config.startPrice) / config.startPrice) * 100)}%, Phases=${phases.map(p => `${p.name}(${p.start}–${p.end || "now"})`).join(",") || "none"}, Skills=${skills.map(s => `${s.name}(${SKILL_LEVELS[s.level]})`).join(",") || "none"}, Weaknesses=${weaknesses.map(w => `${w.name}(${DEBT_SEVERITY[w.severity]})`).join(",") || "none"}, Habits=${habits.map(h => `${h.name}(${h.impact > 0 ? "+" : ""}${h.impact}%)`).join(",") || "none"}, Interests=${interestTopics}, Recent=${orderBook.slice(0, 10).map(o => `${o.desc}:${o.change > 0 ? "+" : ""}${fmt(o.change)}%`).join(",") || "none"}. Reply max 180 words, be direct and data-driven. Reference their interests when relevant.`;
       const reply = await callAI(ctx, [...messages, userMsg].filter(m => m.role !== "system"));
       const assistantMsg = { role: "assistant", content: reply };
       setMessages(p => [...p, assistantMsg]);
@@ -919,14 +920,16 @@ Video: "${videoTitle}" by ${channelName}`;
       const todayStr = today();
       const alreadyGenerated = pressReleases.some(pr => pr.tag === "daily-report" && pr.date === todayStr);
       if (alreadyGenerated) { alert("Today's report already generated. Check the Press tab."); setGeneratingReport(false); return; }
-      const ctx = `You are entropyzero's financial analyst AI. Generate a concise daily report for ${config.name}'s life index.
+      const dailyInterests = [...new Set((interests||[]).flatMap(i => i.topics))].slice(0,6).join(", ") || "none";
+      const ctx = `You are entropyzero's AI analyst. Generate a concise daily report for ${config.name}'s life index.
 Data: Index=${fmt(lifeIndex)}, AllTime=${fmt(allTime)}%, Today=${fmt(todayChange)}%, Streak=${streak}d,
 Phases=${phases.map(p => p.name).join(", ") || "none"},
 Skills=${skills.map(s => s.name).join(", ") || "none"},
 Weaknesses=${weaknesses.map(w => w.name).join(", ") || "none"},
+Interest areas=${dailyInterests},
 Today's habits logged=${todayOrders.map(o => o.desc).join(", ") || "none"},
 Recent 5=${orderBook.slice(0,5).map(o => o.desc + ":" + o.change + "%").join(", ") || "none"}.
-Write a 3-paragraph press release style daily report with: headline analysis, key observations, and tomorrow's focus. Max 120 words. Start with the date.`;
+Write a 3-paragraph press release style daily report with: headline analysis, key observations, and tomorrow's focus. Weave in their interest areas when relevant. Max 120 words. Start with the date.`;
       const report = await callAI(ctx, [{ role: "user", content: "Generate today's daily life index report." }]);
       const now = new Date();
       const titleDate = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -966,12 +969,14 @@ Write a 3-paragraph press release style daily report with: headline analysis, ke
       const weekOrders = orderBook.filter(o => new Date(o.date) >= weekAgo);
       if (weekOrders.length === 0 && !manual) { setGeneratingReport(false); return; }
 
+      const weeklyInterests = [...new Set((interests||[]).flatMap(i => i.topics))].slice(0,6).join(", ") || "none";
       const ctx = `You are entropyzero's AI analyst. Write a weekly life index performance summary.
 User: ${config.name}, Index: ${fmt(lifeIndex)}, AllTime: ${fmt(allTime)}%, Streak: ${streak}d
 This week: ${weekOrders.slice(0, 15).map(o => o.desc + ":" + (o.change > 0 ? "+" : "") + o.change + "%").join(", ") || "none"}
 Skills: ${skills.slice(0, 3).map(s => s.name).join(", ") || "none"}
 Weaknesses: ${weaknesses.slice(0, 3).map(w => w.name).join(", ") || "none"}
-Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focus for next week. Max 200 words.`;
+Interest areas: ${weeklyInterests}
+Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focus for next week. Incorporate their interest areas into the next-week focus. Max 200 words.`;
 
       const report = await callAI(ctx, [{ role: "user", content: "Generate this week's summary." }]);
       const weekEnd = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -1140,6 +1145,106 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <SectorRadar sectorScores={sectorScores} />
                 <div className="grid grid-cols-5 gap-1 mt-2">{SECTORS.map(s => <div key={s.id} className="text-center"><p className="text-base">{s.emoji}</p><p className="text-[10px] text-[#777]">{Math.round(sectorScores[s.id] || 50)}</p></div>)}</div>
               </div>
+
+              {/* Interest Spider Web */}
+              {interests && interests.length > 0 && (() => {
+                const allTopics = [...new Set(interests.flatMap(i => i.topics))];
+                if (allTopics.length < 2) return null;
+                const freq = {};
+                interests.forEach(it => it.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
+
+                const W = 320, H = 260, CX = W/2, CY = H/2;
+                // web rings
+                const rings = [0.3, 0.55, 0.8, 1.0];
+                const maxR = Math.min(CX, CY) - 28;
+
+                // spoke positions
+                const pos = {};
+                allTopics.forEach((t, i) => {
+                  const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                  pos[t] = { x: CX + maxR * Math.cos(a), y: CY + maxR * Math.sin(a), a };
+                });
+
+                // web ring polygons
+                const ringPaths = rings.map(r => {
+                  const pts = allTopics.map((t, i) => {
+                    const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                    return `${CX + maxR * r * Math.cos(a)},${CY + maxR * r * Math.sin(a)}`;
+                  });
+                  return pts.join(" ");
+                });
+
+                // spoke lines from center to edge
+                const spokes = allTopics.map((t, i) => {
+                  const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                  return { x: CX + maxR * Math.cos(a), y: CY + maxR * Math.sin(a) };
+                });
+
+                // connection edges between co-occurring topics
+                const edgeSet = new Set();
+                const edges = [];
+                interests.forEach(it => {
+                  for (let a = 0; a < it.topics.length; a++) {
+                    for (let b = a+1; b < it.topics.length; b++) {
+                      const key = [it.topics[a], it.topics[b]].sort().join("|||");
+                      if (!edgeSet.has(key) && pos[it.topics[a]] && pos[it.topics[b]]) {
+                        edgeSet.add(key);
+                        edges.push([pos[it.topics[a]], pos[it.topics[b]]]);
+                      }
+                    }
+                  }
+                });
+
+                const maxFreq = Math.max(...Object.values(freq), 1);
+
+                return (
+                  <div className="mt-4 border-t border-[#252525] pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <p className="text-xs text-[#777]">Interest Map</p>
+                      <span className="text-[9px] text-[#444] font-mono">{allTopics.length} topics · {interests.length} videos</span>
+                    </div>
+                    <div className="rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#1e1e1e]">
+                      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+                        {/* web rings */}
+                        {ringPaths.map((pts, i) => (
+                          <polygon key={i} points={pts} fill="none" stroke="#1e1e1e" strokeWidth="1" />
+                        ))}
+                        {/* spokes */}
+                        {spokes.map((p, i) => (
+                          <line key={i} x1={CX} y1={CY} x2={p.x} y2={p.y} stroke="#1a1a1a" strokeWidth="1" />
+                        ))}
+                        {/* connection threads */}
+                        {edges.map(([a, b], i) => (
+                          <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#22c55e" strokeWidth="1" strokeOpacity="0.2" />
+                        ))}
+                        {/* nodes */}
+                        {allTopics.map(t => {
+                          const p = pos[t];
+                          const r = 3 + (freq[t] / maxFreq) * 5;
+                          const hot = freq[t] > 1;
+                          return (
+                            <g key={t}>
+                              {hot && <circle cx={p.x} cy={p.y} r={r + 5} fill="#22c55e" opacity="0.05" />}
+                              <circle cx={p.x} cy={p.y} r={r} fill="#141414" stroke={hot ? "#22c55e" : "#2e2e2e"} strokeWidth="1.2" />
+                              <text
+                                x={p.x + (p.x < CX - 5 ? -(r+5) : p.x > CX + 5 ? (r+5) : 0)}
+                                y={p.y + (p.y < CY - 5 ? -(r+4) : p.y > CY + 5 ? (r+10) : 4)}
+                                textAnchor={p.x < CX - 5 ? "end" : p.x > CX + 5 ? "start" : "middle"}
+                                fill={hot ? "#666" : "#444"}
+                                fontSize="7.5"
+                                fontFamily="monospace"
+                              >{t}</text>
+                            </g>
+                          );
+                        })}
+                        {/* center dot */}
+                        <circle cx={CX} cy={CY} r="2" fill="#222" />
+                      </svg>
+                    </div>
+                    <p className="text-[10px] text-[#333] mt-2 text-center">Threads connect co-occurring topics · brighter = more videos</p>
+                  </div>
+                );
+              })()}
               <div className="bg-[#141414] border border-[#252525] rounded-xl p-4 mb-3">
                 <div className="flex items-center gap-2 mb-3"><p className="text-xs text-[#777]">Balance Sheet</p><InfoTooltip feature="balanceSheet" /></div>
                 <div className="flex items-center gap-4">
@@ -1460,7 +1565,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
                 Interests
               </h2>
-              <span className="text-[9px] text-[#555] font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI tagged via OpenRouter</span>
+              <span className="text-[9px] text-[#555] font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI tagged</span>
             </div>
             <p className="text-xs text-[#555] mb-3">Paste any YouTube link — AI extracts your interest topics and maps connections.</p>
             <div className="flex gap-2">

@@ -16,10 +16,10 @@
     .pos { color: #22c55e; } .neg { color: #ef4444; }
     .ranges { display: flex; gap: 4px; margin-bottom: 10px; }
     .range-btn { flex: 1; padding: 5px 0; font-size: 10px; font-weight: 600; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #555; cursor: pointer; transition: all 0.15s; font-family: monospace; }
-    .range-btn:hover { color: #aaa; border-color: #444; }
     .range-btn.active { background: #e8e8e8; color: #0d0d0d; border-color: #e8e8e8; }
-    .chart-area { width: 100%; height: 175px; margin-bottom: 14px; position: relative; }
-    .chart-area svg { width: 100%; height: 100%; display: block; }
+    .chart-wrap { position: relative; width: 100%; height: 160px; margin-bottom: 14px; }
+    .chart-wrap svg { width: 100%; height: 100%; display: block; }
+    .tooltip { position: absolute; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 5px 9px; font-size: 11px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; transform: translate(-50%, -110%); }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
     .stat { background: #1a1a1a; border: 1px solid #252525; border-radius: 12px; padding: 10px; text-align: center; }
     .stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
@@ -27,187 +27,202 @@
     .footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1e1e1e; padding-top: 12px; }
     .brand { font-size: 10px; color: #444; display: flex; align-items: center; gap: 5px; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
-    .cta { font-size: 10px; color: #555; text-decoration: none; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 10px; transition: all 0.2s; }
+    .cta { font-size: 10px; color: #555; text-decoration: none; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 10px; }
     .cta:hover { color: #e8e8e8; border-color: #444; }
-    .center { text-align: center; padding: 40px 20px; color: #555; font-size: 12px; line-height: 2; }
+    /* error / loading states */
+    .center { text-align: center; padding: 40px 20px; }
     .center .icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
     .center .title { color: #777; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-    .center .detail { color: #444; font-size: 10px; font-family: monospace; }
-    .tip { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 10px 14px; margin-top: 12px; text-align: left; font-size: 10px; color: #555; line-height: 1.8; }
-    .tip code { color: #666; background: #1a1a1a; padding: 1px 5px; border-radius: 4px; }
-    .tooltip { position: absolute; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 10px; font-size: 11px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; transform: translate(-50%, -110%); }
+    .center .detail { color: #444; font-size: 10px; font-family: monospace; margin-bottom: 10px; }
+    .rule-box { background: #0f0f0f; border: 1px solid #1e1e1e; border-radius: 10px; padding: 10px 14px; text-align: left; font-size: 10px; color: #555; line-height: 2; }
+    .rule-box .title { color: #666; font-size: 11px; font-weight: 600; margin-bottom: 6px; font-family: sans-serif; }
+    .rule-box code { color: #888; font-family: monospace; }
+    .rule-green { color: #22c55e; font-family: monospace; }
   </style>
 </head>
 <body>
 <div class="widget" id="app">
-  <div class="center">
-    <div class="icon">📈</div>
-    <div class="title">Loading…</div>
-  </div>
+  <div class="center"><div class="icon">📈</div><div class="title">Loading…</div></div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const db = getFirestore(initializeApp({
+  const app = initializeApp({
     apiKey: "AIzaSyBuPTw6WpRTWSDhs_L_W9OELFP6ff6Ki0c",
     authDomain: "copiumai-9f5b6.firebaseapp.com",
     projectId: "copiumai-9f5b6",
     storageBucket: "copiumai-9f5b6.firebasestorage.app",
     messagingSenderId: "164793994267",
     appId: "1:164793994267:web:f9d3594cca736c7fa67cbe"
-  }));
+  });
+  const db = getFirestore(app);
 
   const uid = new URLSearchParams(window.location.search).get("uid");
-  const app = document.getElementById("app");
-  const fmt = (n, d=2) => parseFloat(n).toFixed(d);
+  const root = document.getElementById("app");
+  const fmt = (n, d=2) => Number(parseFloat(n)).toFixed(d);
 
-  function show(html) { app.innerHTML = html; }
+  function setHtml(html) { root.innerHTML = html; }
+
+  function showError(icon, title, detail, showRules) {
+    setHtml(`
+      <div class="center">
+        <div class="icon">${icon}</div>
+        <div class="title">${title}</div>
+        <div class="detail">${detail}</div>
+        ${showRules ? `
+        <div class="rule-box">
+          <div class="title">Fix: add this rule in Firebase Console → Firestore → Rules → Publish</div>
+          <code>match /public/{userId} {</code><br>
+          <code class="rule-green">&nbsp;&nbsp;allow read: if true;</code><br>
+          <code>&nbsp;&nbsp;allow write: if request.auth.uid == userId;</code><br>
+          <code>}</code>
+        </div>` : ""}
+      </div>
+    `);
+  }
 
   if (!uid) {
-    show(`<div class="center">
-      <div class="icon">🔗</div>
-      <div class="title">No user ID</div>
-      <div class="detail">Add ?uid=YOUR_USER_ID to this URL</div>
-    </div>`);
+    showError("🔗", "No user ID", "Add ?uid=YOUR_USER_ID to this URL", false);
   } else {
     getDoc(doc(db, "public", uid))
       .then(snap => {
         if (!snap.exists()) {
-          show(`<div class="center">
-            <div class="icon">🔒</div>
-            <div class="title">Widget not enabled</div>
-            <div class="detail">uid: ${uid.slice(0,8)}…</div>
-            <div class="tip">
-              Go to <strong style="color:#888">entropyzero → Settings → Portfolio Widget</strong> and toggle it on.<br>
-              Then make sure your Firestore rules allow public reads:<br><br>
-              <code>match /public/{userId} {</code><br>
-              <code>&nbsp;&nbsp;allow read: if true;</code><br>
-              <code>&nbsp;&nbsp;allow write: if request.auth.uid == userId;</code><br>
-              <code>}</code>
-            </div>
-          </div>`);
+          showError("🔒", "Widget not enabled",
+            "Go to entropyzero → Settings → Portfolio Widget and toggle it on.", true);
           return;
         }
-        render(snap.data());
+        const data = snap.data();
+        // Normalise chartData — Firestore can store arrays, handle both formats
+        let cd = data.chartData || [];
+        if (!Array.isArray(cd)) cd = [];
+        // Filter to only entries with date and numeric value
+        cd = cd
+          .filter(p => p && p.date && !isNaN(parseFloat(p.value)))
+          .map(p => ({ date: String(p.date), value: parseFloat(p.value) }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        if (cd.length === 0) {
+          showError("📉", "No chart data found",
+            "Toggle widget off and on in Settings to force a resync.", false);
+          return;
+        }
+        render(data, cd);
       })
       .catch(e => {
-        const isPermission = e.message?.includes("permission") || e.code === "permission-denied";
-        show(`<div class="center">
-          <div class="icon">${isPermission ? "🛡️" : "⚠️"}</div>
-          <div class="title">${isPermission ? "Firestore permission denied" : "Could not load widget"}</div>
-          <div class="detail">${e.message || e.code || "Unknown error"}</div>
-          ${isPermission ? `<div class="tip">
-            Your Firestore security rules are blocking the read.<br>
-            Add this rule in <strong style="color:#888">Firebase Console → Firestore → Rules</strong>:<br><br>
-            <code>match /public/{userId} {</code><br>
-            <code>&nbsp;&nbsp;allow read: if true;</code><br>
-            <code>&nbsp;&nbsp;allow write: if request.auth.uid == userId;</code><br>
-            <code>}</code>
-          </div>` : ""}
-        </div>`);
+        const isPerm = e.code === "permission-denied" || (e.message||"").toLowerCase().includes("permission");
+        showError(
+          isPerm ? "🛡️" : "⚠️",
+          isPerm ? "Firestore permission denied" : "Could not load widget",
+          isPerm ? "Your Firestore security rules are blocking this read." : (e.message || "Unknown error"),
+          isPerm
+        );
       });
   }
 
-  // ── Chart ────────────────────────────────────────────────────────────────────
+  // ── SVG chart ────────────────────────────────────────────────────────────────
+  const VW = 460, VH = 140, PAD = 6;
+
   function buildPath(vals) {
     if (!vals || vals.length < 2) return null;
-    const W = 460, H = 155, P = 8;
-    const min = Math.min(...vals) - 2, max = Math.max(...vals) + 2, range = max - min || 1;
-    const x = i => (i / (vals.length - 1)) * W;
-    const y = v => P + (1 - (v - min) / range) * (H - P * 2);
-    let line = `M ${x(0)} ${y(vals[0])}`;
+    const mn = Math.min(...vals) - 1, mx = Math.max(...vals) + 1, rng = mx - mn || 1;
+    const x = i => (i / (vals.length - 1)) * VW;
+    const y = v => PAD + (1 - (v - mn) / rng) * (VH - PAD * 2);
+    // monotone cubic bezier
+    let d = `M ${x(0).toFixed(1)} ${y(vals[0]).toFixed(1)}`;
     for (let i = 1; i < vals.length; i++) {
-      const cx = (x(i-1) + x(i)) / 2;
-      line += ` C ${cx} ${y(vals[i-1])}, ${cx} ${y(vals[i])}, ${x(i)} ${y(vals[i])}`;
+      const mx1 = (x(i-1) + x(i)) / 2;
+      d += ` C ${mx1.toFixed(1)} ${y(vals[i-1]).toFixed(1)}, ${mx1.toFixed(1)} ${y(vals[i]).toFixed(1)}, ${x(i).toFixed(1)} ${y(vals[i]).toFixed(1)}`;
     }
-    return { line, area: line + ` L ${x(vals.length-1)} ${H} L ${x(0)} ${H} Z`, x, y, vals, H };
+    return { d, area: d + ` L ${x(vals.length-1).toFixed(1)} ${VH} L 0 ${VH} Z`, x, y };
   }
 
-  function drawChart(chartData, days, color, svgId) {
-    const pts = days >= 99999 ? chartData : chartData.slice(-days);
-    const vals = pts.map(p => parseFloat(p.value));
-    const svg = document.getElementById(svgId);
-    if (!svg) return;
+  function drawChart(cd, days, color) {
+    const pts = days >= 99999 ? cd : cd.slice(-days);
+    const vals = pts.map(p => p.value);
+    const svgEl = document.getElementById("wchart");
+    const tipEl = document.getElementById("wtip");
+    if (!svgEl) return;
 
     const path = buildPath(vals);
-    if (!path) {
-      svg.innerHTML = `<text x="230" y="87" text-anchor="middle" fill="#333" font-size="11" font-family="monospace">No data for this range</text>`;
+    if (!path || vals.length < 2) {
+      svgEl.innerHTML = `<text x="230" y="75" text-anchor="middle" fill="#333" font-size="11" font-family="monospace">Not enough data for this range</text>`;
       return;
     }
 
-    svg.innerHTML = `
+    svgEl.innerHTML = `
       <defs>
-        <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stop-color="${color}" stop-opacity="0.18"/>
-          <stop offset="95%" stop-color="${color}" stop-opacity="0.01"/>
+        <linearGradient id="wgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.20"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.01"/>
         </linearGradient>
       </defs>
-      <path d="${path.area}" fill="url(#wg)"/>
-      <path d="${path.line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle id="hdot" cx="-99" cy="-99" r="4" fill="${color}" stroke="#0d0d0d" stroke-width="2" opacity="0"/>
+      <path d="${path.area}" fill="url(#wgrad)"/>
+      <path d="${path.d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle id="wdot" cx="-9999" cy="-9999" r="4" fill="${color}" stroke="#141414" stroke-width="2" opacity="0"/>
     `;
 
-    // x-axis labels
-    const labelCount = Math.min(5, pts.length);
-    for (let i = 0; i < labelCount; i++) {
-      const idx = Math.round(i * (pts.length - 1) / (labelCount - 1));
-      const lx = path.x(idx), ly = path.H + 12;
-      const d = new Date(pts[idx].date);
-      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    // x-axis date labels
+    const n = Math.min(4, pts.length);
+    for (let i = 0; i < n; i++) {
+      const idx = Math.round(i * (pts.length - 1) / (n - 1));
+      const lbl = new Date(pts[idx].date + "T00:00:00")
+        .toLocaleDateString("en-US", { month: "short", day: "numeric" });
       const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      t.setAttribute("x", lx); t.setAttribute("y", ly);
+      t.setAttribute("x", path.x(idx)); t.setAttribute("y", VH + 14);
       t.setAttribute("text-anchor", "middle");
-      t.setAttribute("fill", "#2a2a2a"); t.setAttribute("font-size", "8");
-      t.setAttribute("font-family", "monospace"); t.textContent = label;
-      svg.appendChild(t);
+      t.setAttribute("fill", "#333"); t.setAttribute("font-size", "8");
+      t.setAttribute("font-family", "monospace"); t.textContent = lbl;
+      svgEl.appendChild(t);
     }
 
-    // hover tooltip
-    const tip = document.getElementById("chart-tip");
-    const W = 460;
-    svg.addEventListener("mousemove", e => {
-      const rect = svg.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width * W;
-      const idx = Math.max(0, Math.min(vals.length-1, Math.round(px / W * (vals.length-1))));
-      const dot = svg.getElementById ? svg.querySelector("#hdot") : null;
+    // hover
+    svgEl.onmousemove = e => {
+      const rect = svgEl.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width * VW;
+      const idx = Math.max(0, Math.min(vals.length - 1, Math.round(px / VW * (vals.length - 1))));
+      const dot = svgEl.querySelector("#wdot");
       if (dot) { dot.setAttribute("cx", path.x(idx)); dot.setAttribute("cy", path.y(vals[idx])); dot.setAttribute("opacity", "1"); }
-      if (tip) {
-        tip.style.display = "block";
-        tip.style.left = ((path.x(idx) / W) * rect.width) + "px";
-        tip.style.top = ((path.y(vals[idx]) / (path.H + 20)) * rect.height) + "px";
-        tip.innerHTML = `<span style="color:#666;font-size:9px">${pts[idx].date}</span><br><span style="color:${color};font-weight:600">${fmt(vals[idx])}</span>`;
+      if (tipEl) {
+        tipEl.style.display = "block";
+        tipEl.style.left = ((path.x(idx) / VW) * rect.width) + "px";
+        tipEl.style.top = ((path.y(vals[idx]) / VH) * rect.height) + "px";
+        tipEl.innerHTML = `<span style="color:#555;font-size:9px">${pts[idx].date}</span><br><b style="color:${color}">${fmt(vals[idx])}</b>`;
       }
-    });
-    svg.addEventListener("mouseleave", () => {
-      const dot = svg.querySelector("#hdot"); if (dot) dot.setAttribute("opacity","0");
-      if (tip) tip.style.display = "none";
-    });
+    };
+    svgEl.onmouseleave = () => {
+      const dot = svgEl.querySelector("#wdot"); if (dot) dot.setAttribute("opacity", "0");
+      if (tipEl) tipEl.style.display = "none";
+    };
 
-    // period % change
-    const rc = vals.length > 1 ? ((vals[vals.length-1] - vals[0]) / vals[0] * 100) : 0;
-    const rcel = document.getElementById("rchange");
-    if (rcel) { rcel.textContent = (rc >= 0 ? "+" : "") + fmt(rc) + "% " + (days >= 99999 ? "all-time" : "this period"); rcel.className = "change " + (rc >= 0 ? "pos" : "neg"); }
+    // period change
+    const pct = ((vals[vals.length-1] - vals[0]) / vals[0]) * 100;
+    const rcel = document.getElementById("wchange");
+    if (rcel) {
+      rcel.textContent = (pct >= 0 ? "+" : "") + fmt(pct) + "% " + (days >= 99999 ? "all-time" : "this period");
+      rcel.className = "change " + (pct >= 0 ? "pos" : "neg");
+    }
   }
 
-  // ── Main render ──────────────────────────────────────────────────────────────
-  function render(data) {
-    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData = [], lastUpdated } = data;
-    const isPos = allTime >= 0;
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function render(data, cd) {
+    const { name, ticker, currency, startPrice, currentPrice, allTime, streak, lastUpdated } = data;
+    const isPos = (allTime ?? 0) >= 0;
     const color = isPos ? "#22c55e" : "#ef4444";
-    const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
-    let active = "ALL";
+    const updated = lastUpdated
+      ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : "—";
 
-    show(`
+    setHtml(`
       <div class="header">
         <div>
-          <div class="name">${name}</div>
-          <div class="ticker">$${ticker} · ${currency || "USD"}</div>
+          <div class="name">${name || "—"}</div>
+          <div class="ticker">$${ticker || "???"} · ${currency || "USD"}</div>
         </div>
         <div style="text-align:right">
-          <div class="price ${isPos ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
-          <div id="rchange" class="change ${isPos ? "pos" : "neg"}">${isPos ? "+" : ""}${fmt(allTime)}% all-time</div>
+          <div class="price ${isPos ? "pos" : "neg"}">${fmt(currentPrice ?? startPrice)}</div>
+          <div id="wchange" class="change ${isPos ? "pos" : "neg"}">${isPos ? "+" : ""}${fmt(allTime)}% all-time</div>
         </div>
       </div>
 
@@ -218,9 +233,9 @@
         <button class="range-btn active" data-d="99999">ALL</button>
       </div>
 
-      <div class="chart-area">
-        <div id="chart-tip" class="tooltip"></div>
-        <svg id="main-svg" viewBox="0 0 460 170" preserveAspectRatio="none"></svg>
+      <div class="chart-wrap">
+        <div id="wtip" class="tooltip"></div>
+        <svg id="wchart" viewBox="0 0 ${VW} ${VH + 18}" preserveAspectRatio="none"></svg>
       </div>
 
       <div class="stats">
@@ -230,7 +245,7 @@
         </div>
         <div class="stat">
           <div class="stat-label">Current</div>
-          <div class="stat-val ${isPos ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
+          <div class="stat-val ${isPos ? "pos" : "neg"}">${fmt(currentPrice ?? startPrice)}</div>
         </div>
         <div class="stat">
           <div class="stat-label">🔥 Streak</div>
@@ -244,15 +259,14 @@
       </div>
     `);
 
-    drawChart(chartData, 99999, color, "main-svg");
+    drawChart(cd, 99999, color);
 
     document.querySelectorAll(".range-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        active = btn.dataset.d;
+      btn.onclick = () => {
         document.querySelectorAll(".range-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        drawChart(chartData, parseInt(active), color, "main-svg");
-      });
+        drawChart(cd, parseInt(btn.dataset.d), color);
+      };
     });
   }
 </script>

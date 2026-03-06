@@ -18,7 +18,7 @@
     .range-btn { flex: 1; padding: 5px 0; font-size: 10px; font-weight: 600; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #555; cursor: pointer; transition: all 0.15s; font-family: monospace; }
     .range-btn:hover { color: #aaa; border-color: #444; }
     .range-btn.active { background: #e8e8e8; color: #0d0d0d; border-color: #e8e8e8; }
-    .chart-area { width: 100%; height: 180px; margin-bottom: 14px; }
+    .chart-area { width: 100%; height: 175px; margin-bottom: 14px; position: relative; }
     .chart-area svg { width: 100%; height: 100%; display: block; }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
     .stat { background: #1a1a1a; border: 1px solid #252525; border-radius: 12px; padding: 10px; text-align: center; }
@@ -29,20 +29,20 @@
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
     .cta { font-size: 10px; color: #555; text-decoration: none; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 10px; transition: all 0.2s; }
     .cta:hover { color: #e8e8e8; border-color: #444; }
-    .center { text-align: center; padding: 48px; color: #444; font-size: 13px; line-height: 2; }
-    .tooltip {
-      position: absolute; background: #1e1e1e; border: 1px solid #2e2e2e;
-      border-radius: 8px; padding: 6px 10px; font-size: 11px; pointer-events: none;
-      display: none; white-space: nowrap; z-index: 10;
-    }
-    .chart-wrap { position: relative; }
+    .center { text-align: center; padding: 40px 20px; color: #555; font-size: 12px; line-height: 2; }
+    .center .icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+    .center .title { color: #777; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .center .detail { color: #444; font-size: 10px; font-family: monospace; }
+    .tip { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 10px 14px; margin-top: 12px; text-align: left; font-size: 10px; color: #555; line-height: 1.8; }
+    .tip code { color: #666; background: #1a1a1a; padding: 1px 5px; border-radius: 4px; }
+    .tooltip { position: absolute; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 10px; font-size: 11px; pointer-events: none; display: none; white-space: nowrap; z-index: 10; transform: translate(-50%, -110%); }
   </style>
 </head>
 <body>
 <div class="widget" id="app">
   <div class="center">
-    <div style="font-size:28px;margin-bottom:8px;opacity:0.4">📈</div>
-    Loading…
+    <div class="icon">📈</div>
+    <div class="title">Loading…</div>
   </div>
 </div>
 
@@ -60,168 +60,167 @@
   }));
 
   const uid = new URLSearchParams(window.location.search).get("uid");
-  const fmt = (n, d=2) => parseFloat(n).toFixed(d);
   const app = document.getElementById("app");
+  const fmt = (n, d=2) => parseFloat(n).toFixed(d);
 
-  function err(msg) {
-    app.innerHTML = `<div class="center">${msg}</div>`;
+  function show(html) { app.innerHTML = html; }
+
+  if (!uid) {
+    show(`<div class="center">
+      <div class="icon">🔗</div>
+      <div class="title">No user ID</div>
+      <div class="detail">Add ?uid=YOUR_USER_ID to this URL</div>
+    </div>`);
+  } else {
+    getDoc(doc(db, "public", uid))
+      .then(snap => {
+        if (!snap.exists()) {
+          show(`<div class="center">
+            <div class="icon">🔒</div>
+            <div class="title">Widget not enabled</div>
+            <div class="detail">uid: ${uid.slice(0,8)}…</div>
+            <div class="tip">
+              Go to <strong style="color:#888">entropyzero → Settings → Portfolio Widget</strong> and toggle it on.<br>
+              Then make sure your Firestore rules allow public reads:<br><br>
+              <code>match /public/{userId} {</code><br>
+              <code>&nbsp;&nbsp;allow read: if true;</code><br>
+              <code>&nbsp;&nbsp;allow write: if request.auth.uid == userId;</code><br>
+              <code>}</code>
+            </div>
+          </div>`);
+          return;
+        }
+        render(snap.data());
+      })
+      .catch(e => {
+        const isPermission = e.message?.includes("permission") || e.code === "permission-denied";
+        show(`<div class="center">
+          <div class="icon">${isPermission ? "🛡️" : "⚠️"}</div>
+          <div class="title">${isPermission ? "Firestore permission denied" : "Could not load widget"}</div>
+          <div class="detail">${e.message || e.code || "Unknown error"}</div>
+          ${isPermission ? `<div class="tip">
+            Your Firestore security rules are blocking the read.<br>
+            Add this rule in <strong style="color:#888">Firebase Console → Firestore → Rules</strong>:<br><br>
+            <code>match /public/{userId} {</code><br>
+            <code>&nbsp;&nbsp;allow read: if true;</code><br>
+            <code>&nbsp;&nbsp;allow write: if request.auth.uid == userId;</code><br>
+            <code>}</code>
+          </div>` : ""}
+        </div>`);
+      });
   }
 
-  if (!uid) return err("No user ID.<br><small style='color:#333'>Add ?uid=YOUR_ID to the URL</small>");
-
-  getDoc(doc(db, "public", uid))
-    .then(snap => {
-      if (!snap.exists()) return err("Widget not enabled.<br><small style='color:#333'>Settings → Portfolio Widget → toggle on</small>");
-      render(snap.data());
-    })
-    .catch(e => err("Failed to load: " + e.message));
-
-  // ── SVG chart — same curve style as Recharts monotone ─────────────────────
-  function buildSVG(pts, color) {
-    if (!pts || pts.length < 2) return `<text x="50%" y="50%" text-anchor="middle" fill="#333" font-size="11" dominant-baseline="middle">No data</text>`;
-    const W = 460, H = 150, PX = 0, PY = 12;
-    const vals = pts.map(p => parseFloat(p.value));
-    const min = Math.min(...vals) - 5;
-    const max = Math.max(...vals) + 5;
-    const range = max - min || 1;
-    const x = i => PX + (i / (pts.length - 1)) * (W - PX * 2);
-    const y = v => PY + (1 - (v - min) / range) * (H - PY * 2);
-
-    // monotone cubic like recharts
-    let d = `M ${x(0)} ${y(vals[0])}`;
+  // ── Chart ────────────────────────────────────────────────────────────────────
+  function buildPath(vals) {
+    if (!vals || vals.length < 2) return null;
+    const W = 460, H = 155, P = 8;
+    const min = Math.min(...vals) - 2, max = Math.max(...vals) + 2, range = max - min || 1;
+    const x = i => (i / (vals.length - 1)) * W;
+    const y = v => P + (1 - (v - min) / range) * (H - P * 2);
+    let line = `M ${x(0)} ${y(vals[0])}`;
     for (let i = 1; i < vals.length; i++) {
-      const x0 = x(i-1), y0 = y(vals[i-1]), x1 = x(i), y1 = y(vals[i]);
-      const cpx = (x0 + x1) / 2;
-      d += ` C ${cpx} ${y0}, ${cpx} ${y1}, ${x1} ${y1}`;
+      const cx = (x(i-1) + x(i)) / 2;
+      line += ` C ${cx} ${y(vals[i-1])}, ${cx} ${y(vals[i])}, ${x(i)} ${y(vals[i])}`;
     }
-    const area = d + ` L ${x(vals.length-1)} ${H} L ${x(0)} ${H} Z`;
+    return { line, area: line + ` L ${x(vals.length-1)} ${H} L ${x(0)} ${H} Z`, x, y, vals, H };
+  }
 
-    // x-axis labels (pick ~4 evenly spaced)
-    const labelCount = Math.min(4, pts.length);
-    const labelIdxs = Array.from({length: labelCount}, (_, i) => Math.round(i * (pts.length - 1) / (labelCount - 1)));
-    const labels = labelIdxs.map(i => {
-      const d = new Date(pts[i].date);
-      const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-      return `<text x="${x(i)}" y="${H + 14}" text-anchor="middle" fill="#2a2a2a" font-size="9">${label}</text>`;
-    }).join("");
+  function drawChart(chartData, days, color, svgId) {
+    const pts = days >= 99999 ? chartData : chartData.slice(-days);
+    const vals = pts.map(p => parseFloat(p.value));
+    const svg = document.getElementById(svgId);
+    if (!svg) return;
 
-    return `
+    const path = buildPath(vals);
+    if (!path) {
+      svg.innerHTML = `<text x="230" y="87" text-anchor="middle" fill="#333" font-size="11" font-family="monospace">No data for this range</text>`;
+      return;
+    }
+
+    svg.innerHTML = `
       <defs>
         <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="5%" stop-color="${color}" stop-opacity="0.18"/>
           <stop offset="95%" stop-color="${color}" stop-opacity="0.01"/>
         </linearGradient>
-        <clipPath id="clip"><rect x="0" y="0" width="${W}" height="${H}"/></clipPath>
       </defs>
-      <g clip-path="url(#clip)">
-        <path d="${area}" fill="url(#wg)"/>
-        <path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-      ${labels}
+      <path d="${path.area}" fill="url(#wg)"/>
+      <path d="${path.line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle id="hdot" cx="-99" cy="-99" r="4" fill="${color}" stroke="#0d0d0d" stroke-width="2" opacity="0"/>
     `;
-  }
 
-  // ── Tooltip on hover ───────────────────────────────────────────────────────
-  function attachTooltip(svgEl, pts, color) {
-    if (!pts || pts.length < 2) return;
-    const W = 460, H = 150, PY = 12;
-    const vals = pts.map(p => parseFloat(p.value));
-    const min = Math.min(...vals) - 5, max = Math.max(...vals) + 5, range = max - min || 1;
-    const x = i => (i / (pts.length - 1)) * W;
-    const y = v => PY + (1 - (v - min) / range) * (H - PY * 2);
+    // x-axis labels
+    const labelCount = Math.min(5, pts.length);
+    for (let i = 0; i < labelCount; i++) {
+      const idx = Math.round(i * (pts.length - 1) / (labelCount - 1));
+      const lx = path.x(idx), ly = path.H + 12;
+      const d = new Date(pts[idx].date);
+      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", lx); t.setAttribute("y", ly);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("fill", "#2a2a2a"); t.setAttribute("font-size", "8");
+      t.setAttribute("font-family", "monospace"); t.textContent = label;
+      svg.appendChild(t);
+    }
 
-    const tip = document.getElementById("tip");
-    const dot = document.getElementById("hover-dot");
-
-    svgEl.addEventListener("mousemove", e => {
-      const rect = svgEl.getBoundingClientRect();
+    // hover tooltip
+    const tip = document.getElementById("chart-tip");
+    const W = 460;
+    svg.addEventListener("mousemove", e => {
+      const rect = svg.getBoundingClientRect();
       const px = (e.clientX - rect.left) / rect.width * W;
-      const idx = Math.max(0, Math.min(pts.length - 1, Math.round(px / W * (pts.length - 1))));
-      const val = vals[idx];
-      const sx = x(idx), sy = y(val);
-
-      dot.setAttribute("cx", sx); dot.setAttribute("cy", sy);
-      dot.setAttribute("fill", color); dot.style.display = "block";
-
-      tip.style.display = "block";
-      tip.innerHTML = `<span style="color:#666;font-size:10px">${pts[idx].date}</span><br><span style="color:${color};font-family:monospace;font-weight:600">${fmt(val)}</span>`;
-      const tx = (sx / W) * rect.width + rect.left - document.getElementById("app").getBoundingClientRect().left;
-      tip.style.left = Math.min(tx, rect.width - 120) + "px";
-      tip.style.top = (sy / H) * rect.height + "px";
+      const idx = Math.max(0, Math.min(vals.length-1, Math.round(px / W * (vals.length-1))));
+      const dot = svg.getElementById ? svg.querySelector("#hdot") : null;
+      if (dot) { dot.setAttribute("cx", path.x(idx)); dot.setAttribute("cy", path.y(vals[idx])); dot.setAttribute("opacity", "1"); }
+      if (tip) {
+        tip.style.display = "block";
+        tip.style.left = ((path.x(idx) / W) * rect.width) + "px";
+        tip.style.top = ((path.y(vals[idx]) / (path.H + 20)) * rect.height) + "px";
+        tip.innerHTML = `<span style="color:#666;font-size:9px">${pts[idx].date}</span><br><span style="color:${color};font-weight:600">${fmt(vals[idx])}</span>`;
+      }
     });
-    svgEl.addEventListener("mouseleave", () => { tip.style.display = "none"; dot.style.display = "none"; });
+    svg.addEventListener("mouseleave", () => {
+      const dot = svg.querySelector("#hdot"); if (dot) dot.setAttribute("opacity","0");
+      if (tip) tip.style.display = "none";
+    });
+
+    // period % change
+    const rc = vals.length > 1 ? ((vals[vals.length-1] - vals[0]) / vals[0] * 100) : 0;
+    const rcel = document.getElementById("rchange");
+    if (rcel) { rcel.textContent = (rc >= 0 ? "+" : "") + fmt(rc) + "% " + (days >= 99999 ? "all-time" : "this period"); rcel.className = "change " + (rc >= 0 ? "pos" : "neg"); }
   }
 
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ── Main render ──────────────────────────────────────────────────────────────
   function render(data) {
     const { name, ticker, currency, startPrice, currentPrice, allTime, streak, chartData = [], lastUpdated } = data;
+    const isPos = allTime >= 0;
+    const color = isPos ? "#22c55e" : "#ef4444";
     const updated = lastUpdated ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
-    let activeRange = "ALL";
-    const RANGES = { "1W": 7, "1M": 30, "3M": 90, "ALL": 99999 };
+    let active = "ALL";
 
-    function getFiltered(range) {
-      const days = RANGES[range];
-      if (days >= 99999) return chartData;
-      const cutoff = Date.now() - days * 86400000;
-      const f = chartData.filter(d => new Date(d.date).getTime() >= cutoff);
-      return f.length > 1 ? f : chartData.slice(-days);
-    }
-
-    function drawAll(range) {
-      const pts = getFiltered(range);
-      const isProfit = pts.length > 1 ? pts[pts.length-1].value >= pts[0].value : allTime >= 0;
-      const color = isProfit ? "#22c55e" : "#ef4444";
-      const rc = pts.length > 1 ? ((pts[pts.length-1].value - pts[0].value) / pts[0].value * 100) : allTime;
-
-      // Update price/change
-      document.getElementById("w-price").textContent = fmt(currentPrice || startPrice);
-      document.getElementById("w-price").className = "price " + (isProfit ? "pos" : "neg");
-      document.getElementById("w-change").textContent = (rc >= 0 ? "+" : "") + fmt(rc) + "% " + (range === "ALL" ? "all-time" : "this period");
-      document.getElementById("w-change").className = "change " + (isProfit ? "pos" : "neg");
-
-      // Update chart
-      const svgEl = document.getElementById("main-svg");
-      svgEl.innerHTML = buildSVG(pts, color);
-      // Re-add hover dot element
-      const dotEl = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dotEl.setAttribute("id", "hover-dot");
-      dotEl.setAttribute("r", "4");
-      dotEl.setAttribute("stroke", "#080808");
-      dotEl.setAttribute("stroke-width", "2");
-      dotEl.style.display = "none";
-      svgEl.appendChild(dotEl);
-      attachTooltip(svgEl, pts, color);
-
-      // Update range buttons
-      document.querySelectorAll(".range-btn").forEach(b => {
-        b.classList.toggle("active", b.dataset.r === range);
-      });
-    }
-
-    app.innerHTML = `
+    show(`
       <div class="header">
         <div>
           <div class="name">${name}</div>
           <div class="ticker">$${ticker} · ${currency || "USD"}</div>
         </div>
         <div style="text-align:right">
-          <div id="w-price" class="price pos">${fmt(currentPrice || startPrice)}</div>
-          <div id="w-change" class="change pos">+${fmt(allTime)}% all-time</div>
+          <div class="price ${isPos ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
+          <div id="rchange" class="change ${isPos ? "pos" : "neg"}">${isPos ? "+" : ""}${fmt(allTime)}% all-time</div>
         </div>
       </div>
 
       <div class="ranges">
-        <button class="range-btn" data-r="1W">1W</button>
-        <button class="range-btn" data-r="1M">1M</button>
-        <button class="range-btn" data-r="3M">3M</button>
-        <button class="range-btn active" data-r="ALL">ALL</button>
+        <button class="range-btn" data-d="7">1W</button>
+        <button class="range-btn" data-d="30">1M</button>
+        <button class="range-btn" data-d="90">3M</button>
+        <button class="range-btn active" data-d="99999">ALL</button>
       </div>
 
-      <div class="chart-wrap">
-        <div id="tip" class="tooltip"></div>
-        <div class="chart-area">
-          <svg id="main-svg" viewBox="0 0 460 165" preserveAspectRatio="none"></svg>
-        </div>
+      <div class="chart-area">
+        <div id="chart-tip" class="tooltip"></div>
+        <svg id="main-svg" viewBox="0 0 460 170" preserveAspectRatio="none"></svg>
       </div>
 
       <div class="stats">
@@ -231,7 +230,7 @@
         </div>
         <div class="stat">
           <div class="stat-label">Current</div>
-          <div class="stat-val ${allTime >= 0 ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
+          <div class="stat-val ${isPos ? "pos" : "neg"}">${fmt(currentPrice || startPrice)}</div>
         </div>
         <div class="stat">
           <div class="stat-label">🔥 Streak</div>
@@ -243,14 +242,16 @@
         <div class="brand"><span class="dot"></span>entropyzero · ${updated}</div>
         <a class="cta" href="https://entropyzero.vercel.app" target="_blank">View full index →</a>
       </div>
-    `;
+    `);
 
-    drawAll(activeRange);
+    drawChart(chartData, 99999, color, "main-svg");
 
     document.querySelectorAll(".range-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-        activeRange = btn.dataset.r;
-        drawAll(activeRange);
+        active = btn.dataset.d;
+        document.querySelectorAll(".range-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        drawChart(chartData, parseInt(active), color, "main-svg");
       });
     });
   }

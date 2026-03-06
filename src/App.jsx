@@ -684,6 +684,8 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [view, setView]                   = useState("chart");
   const [timeRange, setTimeRange]         = useState("ALL");
   const [scenario, setScenario]           = useState("");
+  const [predicting, setPredicting]       = useState(false);
+  const [aiPrediction, setAiPrediction]   = useState(null); // { impact, reason }
   const [scenarioImpact, setScenarioImpact] = useState("");
   const [prTitle, setPrTitle]             = useState("");
   const [prBody, setPrBody]               = useState("");
@@ -781,17 +783,35 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
 
   const analyzeScenario = () => {
     if (!scenario.trim()) return;
-    const t = scenario.toLowerCase(); let impact = 0;
-    if (/(exam|test|score|result)/.test(t)) impact = /(great|high|90|95|100|excellent|pass)/.test(t) ? 5 : /(fail|bad|poor|low)/.test(t) ? -5 : 1;
-    if (/(fight|lost.*friend|breakup)/.test(t)) impact = -4;
-    if (/(made up|new friend|reconcile)/.test(t)) impact = 3;
-    if (/(sick|fever|hospital)/.test(t)) impact = -2.5;
-    if (/(award|won|prize|achieve)/.test(t)) impact = 4;
-    if (/(vacation|trip|travel)/.test(t)) impact = 2.5;
-    if (scenarioImpact.trim() && !isNaN(parseFloat(scenarioImpact))) impact = parseFloat(scenarioImpact);
-    if (!impact) { alert("Add a % override to log this event."); return; }
-    execute(`📌 ${scenario.slice(0, 70)}`, impact, "event");
-    setScenario(""); setScenarioImpact("");
+    setAiPrediction(null);
+    setPredicting(true);
+    try {
+      const ctx = `You are a life index analyst for entropyzero app. A user just described something that happened in their life. Predict its % impact on their life index (-10 to +10 range, decimals ok).
+
+User context: Index=${fmt(lifeIndex)}, AllTime=${fmt(allTime)}%, Skills=${skills.slice(0,3).map(s=>s.name).join(",")||"none"}, Weaknesses=${weaknesses.slice(0,3).map(w=>w.name).join(",")||"none"}, RecentTrend=${orderBook.slice(0,5).map(o=>o.change>0?"+":""+ o.change+"%").join(",")||"none"}.
+
+Event described: "${scenario}"
+
+Reply ONLY with valid JSON, no markdown, no explanation outside JSON:
+{"impact": 3.5, "reason": "one short sentence why", "emoji": "🎯"}
+
+Rules: positive = good for life/growth, negative = setback. Scale: minor=0.5-1.5, moderate=2-4, major=5-8, life-changing=8-10. Be precise, not round numbers.`;
+      const raw = await callAI(ctx, [{ role: "user", content: scenario }]);
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      if (typeof parsed.impact !== "number") throw new Error("bad response");
+      setAiPrediction(parsed);
+    } catch(e) {
+      console.error("AI predict error:", e);
+      setAiPrediction({ impact: null, reason: "Couldn't predict — check your API key.", emoji: "⚠️" });
+    }
+    setPredicting(false);
+  };
+
+  const confirmLog = () => {
+    if (!aiPrediction || aiPrediction.impact === null) return;
+    execute(`${aiPrediction.emoji || "📌"} ${scenario.slice(0, 65)}`, aiPrediction.impact, "event");
+    setScenario(""); setAiPrediction(null); setScenarioImpact("");
   };
 
   const technicals = useMemo(() => {
@@ -1091,12 +1111,66 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           )}
 
           <Card>
-            <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4"><Send size={16} className="text-[#777]" />Log an Event</h2>
-            <Textarea value={scenario} onChange={e => setScenario(e.target.value)} placeholder="What happened?" className="w-full h-20 mb-2" />
-            <div className="flex gap-2">
-              <Input value={scenarioImpact} onChange={e => setScenarioImpact(e.target.value)} placeholder="% override" className="flex-1 font-mono" />
-              <Btn onClick={analyzeScenario}><Send size={15} />Log</Btn>
-            </div>
+            <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4">
+              <Brain size={16} className="text-[#777]" />Log an Event
+              <span className="ml-auto text-[9px] text-[#555] font-normal font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI powered</span>
+            </h2>
+            <Textarea
+              value={scenario}
+              onChange={e => { setScenario(e.target.value); setAiPrediction(null); }}
+              placeholder="Describe what happened… e.g. 'Got rejected from my dream job but learned a lot from the process'"
+              className="w-full h-24 mb-3"
+              onKeyDown={e => { if (e.key === "Enter" && e.metaKey && !predicting) analyzeScenario(); }}
+            />
+
+            {/* AI Prediction result */}
+            {predicting && (
+              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex items-center gap-3">
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
+                </div>
+                <span className="text-xs text-[#666]">AI is analysing your situation…</span>
+              </div>
+            )}
+
+            {!predicting && aiPrediction && (
+              <div className={`border rounded-xl p-4 mb-3 ${aiPrediction.impact === null ? "border-[#2a2a2a] bg-[#181818]" : aiPrediction.impact >= 0 ? "border-green-900/30 bg-green-950/10" : "border-red-900/30 bg-red-950/10"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[#666] font-mono uppercase tracking-wider">AI Prediction</span>
+                  {aiPrediction.impact !== null && (
+                    <span className={`text-lg font-bold font-mono ${aiPrediction.impact >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {aiPrediction.impact >= 0 ? "+" : ""}{aiPrediction.impact}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#aaa] leading-relaxed mb-3">{aiPrediction.emoji} {aiPrediction.reason}</p>
+                {aiPrediction.impact !== null && (
+                  <div className="flex gap-2">
+                    <Btn onClick={confirmLog} className="flex-1 text-xs">
+                      ✓ Log {aiPrediction.impact >= 0 ? "+" : ""}{aiPrediction.impact}% to index
+                    </Btn>
+                    <button
+                      onClick={() => setAiPrediction(null)}
+                      className="px-3 py-2 rounded-xl text-xs text-[#666] border border-[#252525] hover:text-[#aaa] hover:border-[#333] transition-all"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Btn
+              onClick={analyzeScenario}
+              disabled={predicting || !scenario.trim()}
+              className="w-full"
+            >
+              {predicting
+                ? <><span className="w-3 h-3 border border-[#555] border-t-[#aaa] rounded-full animate-spin" />Analysing…</>
+                : <><Brain size={15} />Predict Impact</>
+              }
+            </Btn>
+            <p className="text-[10px] text-[#444] mt-2 text-center">AI predicts the % impact — you confirm before it logs</p>
           </Card>
 
           <Card>

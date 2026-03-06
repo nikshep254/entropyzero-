@@ -655,14 +655,15 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
 
 // ── Tabs config ───────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "chart",    icon: <BarChart2 size={16} />, label: "Index" },
-  { id: "coach",    icon: <Brain size={16} />,     label: "Coach" },
-  { id: "press",    icon: <Newspaper size={16} />, label: "Press" },
-  { id: "habits",   icon: <Flame size={16} />,     label: "Habits" },
-  { id: "assets",   icon: <Star size={16} />,      label: "Assets" },
-  { id: "phases",   icon: <BookOpen size={16} />,  label: "Phases" },
-  { id: "more",     icon: <Layers size={16} />,    label: "More" },
-  { id: "settings", icon: <Settings size={16} />,  label: "Settings" },
+  { id: "chart",     icon: <BarChart2 size={16} />, label: "Index" },
+  { id: "coach",     icon: <Brain size={16} />,     label: "Coach" },
+  { id: "press",     icon: <Newspaper size={16} />, label: "Press" },
+  { id: "habits",    icon: <Flame size={16} />,     label: "Habits" },
+  { id: "assets",    icon: <Star size={16} />,      label: "Assets" },
+  { id: "interests", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>, label: "Interests" },
+  { id: "phases",    icon: <BookOpen size={16} />,  label: "Phases" },
+  { id: "more",      icon: <Layers size={16} />,    label: "More" },
+  { id: "settings",  icon: <Settings size={16} />,  label: "Settings" },
 ];
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -1450,6 +1451,146 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         </>)}
 
         {/* PHASES */}
+        {view === "interests" && (<>
+
+          {/* Add YouTube */}
+          <Card>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
+                Interests
+              </h2>
+              <span className="text-[9px] text-[#555] font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI tagged via OpenRouter</span>
+            </div>
+            <p className="text-xs text-[#555] mb-3">Paste any YouTube link — AI extracts your interest topics and maps connections.</p>
+            <div className="flex gap-2">
+              <Input
+                value={ytUrl}
+                onChange={e => setYtUrl(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !ytLoading && addYoutubeInterest()}
+                placeholder="youtube.com/watch?v=… or youtu.be/…"
+                className="flex-1"
+              />
+              <Btn onClick={addYoutubeInterest} disabled={ytLoading || !ytUrl.trim()}>
+                {ytLoading
+                  ? <span className="w-3 h-3 border-2 border-[#444] border-t-[#aaa] rounded-full animate-spin inline-block" />
+                  : <Plus size={15} />}
+              </Btn>
+            </div>
+            {ytLoading && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#444] animate-bounce" style={{animationDelay:`${i*0.15}s`}} />)}
+                </div>
+                <p className="text-[10px] text-[#555]">Fetching video · extracting topics with AI…</p>
+              </div>
+            )}
+          </Card>
+
+          {/* Interest cards */}
+          {interests.length === 0 && !ytLoading && (
+            <div className="text-center py-12 text-[#444]">
+              <div className="text-4xl mb-3 opacity-30">🎯</div>
+              <p className="text-sm">Add YouTube videos to map your interests.</p>
+              <p className="text-xs text-[#333] mt-1">Topics are auto-extracted and connected.</p>
+            </div>
+          )}
+
+          {interests.map(item => (
+            <div key={item.id} className="bg-[#141414] border border-[#252525] rounded-2xl overflow-hidden">
+              <div className="flex gap-3 p-4">
+                <img
+                  src={item.thumbnail}
+                  className="w-24 h-16 object-cover rounded-xl flex-shrink-0 bg-[#1e1e1e]"
+                  alt=""
+                  onError={e => { e.target.style.display = "none"; }}
+                />
+                <div className="flex-1 min-w-0">
+                  <a href={item.url} target="_blank" rel="noreferrer"
+                    className="text-sm font-semibold text-[#ddd] hover:text-white leading-snug block mb-1 line-clamp-2">
+                    {item.title}
+                  </a>
+                  <p className="text-[10px] text-[#555] mb-2 font-mono">{item.channel} · {item.addedDate}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {item.topics.map(t => (
+                      <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] text-[#777] font-mono">{t}</span>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => setInterests(p => p.filter(x => x.id !== item.id))} className="text-[#333] hover:text-red-500 self-start flex-shrink-0"><X size={13} /></button>
+              </div>
+            </div>
+          ))}
+
+          {/* Interest Canvas */}
+          {interests.length > 1 && (() => {
+            const allTopics = [...new Set(interests.flatMap(i => i.topics))];
+            const freq = {};
+            interests.forEach(i => i.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
+
+            const W = 360, H = 300, CX = W/2, CY = H/2;
+            const R = Math.min(CX, CY) - 50;
+
+            const topicPos = {};
+            allTopics.forEach((t, i) => {
+              const angle = (i / allTopics.length) * Math.PI * 2 - Math.PI/2;
+              topicPos[t] = { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) };
+            });
+
+            // edges from shared topics within same video
+            const edgeSet = new Set();
+            const edges = [];
+            interests.forEach(item => {
+              for (let a = 0; a < item.topics.length; a++) {
+                for (let b = a+1; b < item.topics.length; b++) {
+                  const ta = item.topics[a], tb = item.topics[b];
+                  const key = [ta, tb].sort().join("||");
+                  if (!edgeSet.has(key) && topicPos[ta] && topicPos[tb]) {
+                    edgeSet.add(key);
+                    edges.push({ x1: topicPos[ta].x, y1: topicPos[ta].y, x2: topicPos[tb].x, y2: topicPos[tb].y });
+                  }
+                }
+              }
+            });
+
+            return (
+              <Card>
+                <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-1">
+                  <Layers size={14} className="text-[#777]" />Interest Canvas
+                  <span className="ml-auto text-[10px] text-[#555] font-mono font-normal">{allTopics.length} topics · {interests.length} videos</span>
+                </h2>
+                <p className="text-[10px] text-[#444] mb-4">Lines connect topics that appear together. Bigger nodes = more videos.</p>
+                <div className="rounded-2xl overflow-hidden bg-[#0a0a0a] border border-[#1e1e1e]">
+                  <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
+                    {/* grid dots */}
+                    {Array.from({length:6},(_,r)=>Array.from({length:8},(_,c)=>(
+                      <circle key={`${r}-${c}`} cx={c*52+20} cy={r*50+25} r="1" fill="#1a1a1a"/>
+                    )))}
+                    {/* edges */}
+                    {edges.map((e,i) => (
+                      <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#2e2e2e" strokeWidth="1.5" strokeLinecap="round"/>
+                    ))}
+                    {/* nodes */}
+                    {allTopics.map(t => {
+                      const p = topicPos[t];
+                      const r = 5 + (freq[t]||1) * 4;
+                      const isHot = freq[t] > 1;
+                      return (
+                        <g key={t}>
+                          {isHot && <circle cx={p.x} cy={p.y} r={r+4} fill={isHot?"#22c55e":"#444"} opacity="0.06"/>}
+                          <circle cx={p.x} cy={p.y} r={r} fill="#1a1a1a" stroke={isHot?"#22c55e33":"#333"} strokeWidth="1.5"/>
+                          <text x={p.x} y={p.y - r - 5} textAnchor="middle" fill={isHot?"#666":"#555"} fontSize="8" fontFamily="monospace">{t}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </Card>
+            );
+          })()}
+
+        </>)}
+
         {view === "phases" && (<>
           <div className="flex items-center gap-2 mb-1"><p className="text-xs text-[#666]">Life phases shape your historical chart curve.</p><InfoTooltip feature="phases" /></div>
           {phases.map(ph => (
@@ -1472,7 +1613,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* MORE */}
         {view === "more" && (<>
           <div className="flex gap-2 flex-wrap mb-2">
-            {[["heatmap", "📅 Heatmap"], ["achievements", "🏆 Achievements"], ["capsule", "⏰ Capsule"], ["interests", "🎯 Interests"]].map(([id, l]) => (
+            {[["heatmap", "📅 Heatmap"], ["achievements", "🏆 Achievements"], ["capsule", "⏰ Capsule"]].map(([id, l]) => (
               <button key={id} onClick={() => setMoreTab(id)} className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${moreTab === id ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{l}</button>
             ))}
           </div>
@@ -1517,126 +1658,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               </div>
             ))}
           </>)}
-          {moreTab === "interests" && (<>
-            {/* YouTube Add */}
-            <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-3">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="#ef4444"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
-                Interests from YouTube
-                <span className="ml-auto text-[9px] text-[#555] font-normal px-2 py-0.5 border border-[#252525] rounded-lg font-mono">AI tagged</span>
-              </h2>
-              <div className="flex gap-2">
-                <Input
-                  value={ytUrl}
-                  onChange={e => setYtUrl(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && !ytLoading && addYoutubeInterest()}
-                  placeholder="Paste YouTube URL…"
-                  className="flex-1"
-                />
-                <Btn onClick={addYoutubeInterest} disabled={ytLoading || !ytUrl.trim()}>
-                  {ytLoading
-                    ? <span className="w-3 h-3 border border-[#555] border-t-[#aaa] rounded-full animate-spin" />
-                    : <Plus size={15} />}
-                </Btn>
-              </div>
-              {ytLoading && <p className="text-[10px] text-[#555] mt-2 animate-pulse">Fetching video info and tagging topics…</p>}
-            </Card>
 
-            {/* Interest cards */}
-            {interests.length > 0 && (
-              <div className="space-y-3">
-                {interests.map(item => (
-                  <div key={item.id} className="bg-[#141414] border border-[#252525] rounded-2xl overflow-hidden">
-                    <div className="flex gap-3 p-3">
-                      <img
-                        src={item.thumbnail}
-                        className="w-20 h-14 object-cover rounded-xl flex-shrink-0 bg-[#1a1a1a]"
-                        alt=""
-                        onError={e => { e.target.style.display = "none"; }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <a href={item.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#ddd] hover:text-white leading-tight block mb-1 truncate">{item.title}</a>
-                        <p className="text-[10px] text-[#555] mb-2">{item.channel} · {item.addedDate}</p>
-                        <div className="flex flex-wrap gap-1">
-                          {item.topics.map(t => (
-                            <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#202020] border border-[#2a2a2a] text-[#888] font-mono">{t}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <button onClick={() => setInterests(p => p.filter(x => x.id !== item.id))} className="text-[#333] hover:text-red-500 self-start mt-0.5"><X size={13} /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {interests.length === 0 && (
-              <div className="text-center py-10 text-[#444] text-sm">
-                <div className="text-3xl mb-3 opacity-40">🎯</div>
-                <p>Paste YouTube links to build your interest graph.</p>
-                <p className="text-xs text-[#333] mt-1">AI extracts topics and maps connections.</p>
-              </div>
-            )}
-
-            {/* Canvas — topic connection map */}
-            {interests.length > 1 && (() => {
-              // Collect all unique topics + build connections
-              const allTopics = [...new Set(interests.flatMap(i => i.topics))];
-              const W = 340, H = 260, CX = W/2, CY = H/2;
-              const R = Math.min(CX, CY) - 40;
-
-              // position topics in a circle
-              const topicPos = {};
-              allTopics.forEach((t, i) => {
-                const angle = (i / allTopics.length) * Math.PI * 2 - Math.PI/2;
-                topicPos[t] = { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) };
-              });
-
-              // edges: videos that share topics
-              const edges = [];
-              interests.forEach(item => {
-                for (let a = 0; a < item.topics.length; a++) {
-                  for (let b = a+1; b < item.topics.length; b++) {
-                    const pa = topicPos[item.topics[a]], pb = topicPos[item.topics[b]];
-                    if (pa && pb) edges.push({ x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y });
-                  }
-                }
-              });
-              // topic → how many videos
-              const freq = {};
-              interests.forEach(i => i.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
-
-              return (
-                <Card>
-                  <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4">
-                    <Layers size={15} className="text-[#777]" />Interest Canvas
-                  </h2>
-                  <div className="rounded-xl overflow-hidden bg-[#0d0d0d] border border-[#252525]">
-                    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
-                      {/* edges */}
-                      {edges.map((e, i) => (
-                        <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#2a2a2a" strokeWidth="1" />
-                      ))}
-                      {/* nodes */}
-                      {allTopics.map(t => {
-                        const p = topicPos[t];
-                        const r = 4 + (freq[t] || 1) * 3;
-                        return (
-                          <g key={t}>
-                            <circle cx={p.x} cy={p.y} r={r} fill="#1e1e1e" stroke="#444" strokeWidth="1" />
-                            <text x={p.x} y={p.y - r - 4} textAnchor="middle" fill="#777" fontSize="8" fontFamily="monospace">{t}</text>
-                          </g>
-                        );
-                      })}
-                      {/* center label */}
-                      <text x={CX} y={CY} textAnchor="middle" fill="#333" fontSize="9" fontFamily="monospace">interest graph</text>
-                    </svg>
-                  </div>
-                  <p className="text-[10px] text-[#444] mt-2 text-center">Nodes grow with more videos · lines connect shared topics</p>
-                </Card>
-              );
-            })()}
-          </>)}
         </>)}
 
         {/* SETTINGS */}

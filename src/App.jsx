@@ -681,11 +681,14 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [goals, setGoals]                 = useState(() => initialData?.goals || []);
   const [unlockedAch, setUnlockedAch]     = useState(() => initialData?.unlockedAch || []);
   const [timeCapsules, setTimeCapsules]   = useState(() => initialData?.timeCapsules || []);
+  const [interests, setInterests]         = useState(() => initialData?.interests || []);
   const [view, setView]                   = useState("chart");
   const [timeRange, setTimeRange]         = useState("ALL");
   const [scenario, setScenario]           = useState("");
   const [predicting, setPredicting]       = useState(false);
   const [aiPrediction, setAiPrediction]   = useState(null); // { impact, reason }
+  const [ytUrl, setYtUrl]                 = useState("");
+  const [ytLoading, setYtLoading]         = useState(false);
   const [scenarioImpact, setScenarioImpact] = useState("");
   const [prTitle, setPrTitle]             = useState("");
   const [prBody, setPrBody]               = useState("");
@@ -708,7 +711,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     if (!uid) return;
     setSaving(true);
     const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
-    const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules });
+    const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests });
     const saveWidget = widgetEnabled
       ? publishPublicWidget(uid, {
           name: config.name,
@@ -724,7 +727,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     Promise.all([saveAll, saveWidget])
       .then(() => { setLastSaved(new Date()); setSaving(false); })
       .catch(e => { console.error("Save error:", e); setSaving(false); });
-  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules]);
+  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -781,7 +784,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     return chartData.filter(d => d.timestamp >= c);
   }, [chartData, timeRange]);
 
-  const analyzeScenario = () => {
+  const analyzeScenario = async () => {
     if (!scenario.trim()) return;
     setAiPrediction(null);
     setPredicting(true);
@@ -812,6 +815,51 @@ Rules: positive = good for life/growth, negative = setback. Scale: minor=0.5-1.5
     if (!aiPrediction || aiPrediction.impact === null) return;
     execute(`${aiPrediction.emoji || "📌"} ${scenario.slice(0, 65)}`, aiPrediction.impact, "event");
     setScenario(""); setAiPrediction(null); setScenarioImpact("");
+  };
+
+  const addYoutubeInterest = async () => {
+    if (!ytUrl.trim()) return;
+    setYtLoading(true);
+    try {
+      // Extract video ID from any YouTube URL format
+      const match = ytUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+      const videoId = match?.[1];
+      if (!videoId) throw new Error("Invalid YouTube URL");
+
+      // Use YouTube oEmbed API (no key needed) to get title
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${videoId}&format=json`);
+      if (!oembedRes.ok) throw new Error("Could not fetch video info");
+      const oembedData = await oembedRes.json();
+      const videoTitle = oembedData.title;
+      const channelName = oembedData.author_name;
+      const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+      // Use AI to extract topics from the title
+      const ctx = `Extract 2-4 interest/topic tags from this YouTube video title. Return ONLY a JSON array of short topic strings (2-3 words max each). No markdown, no explanation.
+Example: ["Machine Learning", "Python", "Data Science"]
+Video: "${videoTitle}" by ${channelName}`;
+      const raw = await callAI(ctx, [{ role: "user", content: videoTitle }]);
+      const clean = raw.replace(/```json|```/g, "").trim();
+      let topics = [];
+      try { topics = JSON.parse(clean); } catch(_) { topics = [channelName]; }
+      if (!Array.isArray(topics)) topics = [channelName];
+
+      const newInterest = {
+        id: genId(),
+        videoId,
+        title: videoTitle,
+        channel: channelName,
+        thumbnail,
+        url: `https://youtube.com/watch?v=${videoId}`,
+        topics: topics.slice(0, 4),
+        addedDate: today(),
+      };
+      setInterests(p => [newInterest, ...p]);
+      setYtUrl("");
+    } catch(e) {
+      alert("Could not load video: " + e.message);
+    }
+    setYtLoading(false);
   };
 
   const technicals = useMemo(() => {
@@ -1424,7 +1472,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* MORE */}
         {view === "more" && (<>
           <div className="flex gap-2 flex-wrap mb-2">
-            {[["heatmap", "📅 Heatmap"], ["achievements", "🏆 Achievements"], ["capsule", "⏰ Capsule"]].map(([id, l]) => (
+            {[["heatmap", "📅 Heatmap"], ["achievements", "🏆 Achievements"], ["capsule", "⏰ Capsule"], ["interests", "🎯 Interests"]].map(([id, l]) => (
               <button key={id} onClick={() => setMoreTab(id)} className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${moreTab === id ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{l}</button>
             ))}
           </div>
@@ -1468,6 +1516,126 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 {(c.opened || c.unlockDate <= today()) ? <p className="text-sm text-[#666] mt-3 leading-relaxed">{c.message}</p> : <p className="text-xs text-[#444] mt-3">🔒 Sealed until {c.unlockDate}</p>}
               </div>
             ))}
+          </>)}
+          {moreTab === "interests" && (<>
+            {/* YouTube Add */}
+            <Card>
+              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-3">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#ef4444"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
+                Interests from YouTube
+                <span className="ml-auto text-[9px] text-[#555] font-normal px-2 py-0.5 border border-[#252525] rounded-lg font-mono">AI tagged</span>
+              </h2>
+              <div className="flex gap-2">
+                <Input
+                  value={ytUrl}
+                  onChange={e => setYtUrl(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && !ytLoading && addYoutubeInterest()}
+                  placeholder="Paste YouTube URL…"
+                  className="flex-1"
+                />
+                <Btn onClick={addYoutubeInterest} disabled={ytLoading || !ytUrl.trim()}>
+                  {ytLoading
+                    ? <span className="w-3 h-3 border border-[#555] border-t-[#aaa] rounded-full animate-spin" />
+                    : <Plus size={15} />}
+                </Btn>
+              </div>
+              {ytLoading && <p className="text-[10px] text-[#555] mt-2 animate-pulse">Fetching video info and tagging topics…</p>}
+            </Card>
+
+            {/* Interest cards */}
+            {interests.length > 0 && (
+              <div className="space-y-3">
+                {interests.map(item => (
+                  <div key={item.id} className="bg-[#141414] border border-[#252525] rounded-2xl overflow-hidden">
+                    <div className="flex gap-3 p-3">
+                      <img
+                        src={item.thumbnail}
+                        className="w-20 h-14 object-cover rounded-xl flex-shrink-0 bg-[#1a1a1a]"
+                        alt=""
+                        onError={e => { e.target.style.display = "none"; }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <a href={item.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#ddd] hover:text-white leading-tight block mb-1 truncate">{item.title}</a>
+                        <p className="text-[10px] text-[#555] mb-2">{item.channel} · {item.addedDate}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {item.topics.map(t => (
+                            <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#202020] border border-[#2a2a2a] text-[#888] font-mono">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={() => setInterests(p => p.filter(x => x.id !== item.id))} className="text-[#333] hover:text-red-500 self-start mt-0.5"><X size={13} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {interests.length === 0 && (
+              <div className="text-center py-10 text-[#444] text-sm">
+                <div className="text-3xl mb-3 opacity-40">🎯</div>
+                <p>Paste YouTube links to build your interest graph.</p>
+                <p className="text-xs text-[#333] mt-1">AI extracts topics and maps connections.</p>
+              </div>
+            )}
+
+            {/* Canvas — topic connection map */}
+            {interests.length > 1 && (() => {
+              // Collect all unique topics + build connections
+              const allTopics = [...new Set(interests.flatMap(i => i.topics))];
+              const W = 340, H = 260, CX = W/2, CY = H/2;
+              const R = Math.min(CX, CY) - 40;
+
+              // position topics in a circle
+              const topicPos = {};
+              allTopics.forEach((t, i) => {
+                const angle = (i / allTopics.length) * Math.PI * 2 - Math.PI/2;
+                topicPos[t] = { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) };
+              });
+
+              // edges: videos that share topics
+              const edges = [];
+              interests.forEach(item => {
+                for (let a = 0; a < item.topics.length; a++) {
+                  for (let b = a+1; b < item.topics.length; b++) {
+                    const pa = topicPos[item.topics[a]], pb = topicPos[item.topics[b]];
+                    if (pa && pb) edges.push({ x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y });
+                  }
+                }
+              });
+              // topic → how many videos
+              const freq = {};
+              interests.forEach(i => i.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
+
+              return (
+                <Card>
+                  <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4">
+                    <Layers size={15} className="text-[#777]" />Interest Canvas
+                  </h2>
+                  <div className="rounded-xl overflow-hidden bg-[#0d0d0d] border border-[#252525]">
+                    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+                      {/* edges */}
+                      {edges.map((e, i) => (
+                        <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#2a2a2a" strokeWidth="1" />
+                      ))}
+                      {/* nodes */}
+                      {allTopics.map(t => {
+                        const p = topicPos[t];
+                        const r = 4 + (freq[t] || 1) * 3;
+                        return (
+                          <g key={t}>
+                            <circle cx={p.x} cy={p.y} r={r} fill="#1e1e1e" stroke="#444" strokeWidth="1" />
+                            <text x={p.x} y={p.y - r - 4} textAnchor="middle" fill="#777" fontSize="8" fontFamily="monospace">{t}</text>
+                          </g>
+                        );
+                      })}
+                      {/* center label */}
+                      <text x={CX} y={CY} textAnchor="middle" fill="#333" fontSize="9" fontFamily="monospace">interest graph</text>
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[#444] mt-2 text-center">Nodes grow with more videos · lines connect shared topics</p>
+                </Card>
+              );
+            })()}
           </>)}
         </>)}
 

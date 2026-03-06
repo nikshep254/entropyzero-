@@ -163,7 +163,7 @@ const FEATURE_INFO = {
   weaknesses:   { title: "Weaknesses — Debt",      body: "Honest tracking of your weak spots. Each subtracts from your net worth. Use 'Improve' to reduce severity or fully overcome it for a boost." },
   goals:        { title: "Goals — Pending IPOs",   body: "Set goals with a % reward for achieving them. When you mark complete, your index gets that reward. Unachieved goals are companies waiting to list." },
   phases:       { title: "Life Phases",            body: "Map your life into chapters. Each phase has a trend that shapes the historical curve on your chart. Phase markers appear as emoji flags." },
-  heatmap:      { title: "Activity Heatmap",       body: "A full-year contribution grid, one square per day. 🟢 Bright green = strong positive day (multiple high-impact habits). 🟩 Light green = small positive net. 🟥 Red = negative day (bad habits outweighed good). ⬛ Dark = no activity logged. The goal is to make the grid dense and green — like a GitHub commit graph but for your life. Hover any square to see that day's net %. Weeks with no activity are red flags. Months that are mostly green = compounding growth." },
+  heatmap:      { title: "Activity Heatmap",       body: "GitHub-style contribution graph. Green = positive net day, red = negative, dark = no activity. Great for spotting consistency patterns." },
   coach:        { title: "AI Life Coach",          body: "An AI with full context on your data — index, habits, skills, weaknesses, phases. Ask for pattern analysis, goal advice, or a life review." },
   capsule:      { title: "Time Capsule",           body: "Write a message that locks until a future date. On that date, a banner appears with your message. Perfect for letters to your future self." },
   mood:         { title: "Mood Tracker",           body: "Log how you feel today. Each mood choice makes a tiny index adjustment and gets tagged to that chart point. Hover chart points to see mood history." },
@@ -689,7 +689,6 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [scenario, setScenario]           = useState("");
   const [predicting, setPredicting]       = useState(false);
   const [aiPrediction, setAiPrediction]   = useState(null); // { impact, reason }
-  const [editedImpact, setEditedImpact]   = useState("");
   const [ytUrl, setYtUrl]                 = useState("");
   const [ytLoading, setYtLoading]         = useState(false);
   const [scenarioImpact, setScenarioImpact] = useState("");
@@ -706,8 +705,6 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [widgetEnabled, setWidgetEnabled] = useState(false);
   const [widgetLoading, setWidgetLoading] = useState(false);
   const [widgetCopied, setWidgetCopied]   = useState("");
-  const [widgetSyncStatus, setWidgetSyncStatus] = useState(null); // null|'ok'|'error'
-  const [widgetSyncMsg, setWidgetSyncMsg]       = useState("");
   const [saving, setSaving]               = useState(false);
   const [lastSaved, setLastSaved]         = useState(null);
 
@@ -730,15 +727,9 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
         })
       : Promise.resolve();
     Promise.all([saveAll, saveWidget])
-      .then(() => {
-        setLastSaved(new Date()); setSaving(false);
-        if (widgetEnabled) setWidgetSyncStatus('ok');
-      })
-      .catch(e => {
-        console.error("Save error:", e); setSaving(false);
-        if (widgetEnabled) { setWidgetSyncStatus('error'); setWidgetSyncMsg(e?.message || "Unknown error"); }
-      });
-  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled]);
+      .then(() => { setLastSaved(new Date()); setSaving(false); })
+      .catch(e => { console.error("Save error:", e); setSaving(false); });
+  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -814,7 +805,7 @@ Rules: positive = good for life/growth, negative = setback. Scale: minor=0.5-1.5
       const clean = raw.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
       if (typeof parsed.impact !== "number") throw new Error("bad response");
-      setAiPrediction(parsed); setEditedImpact(String(parsed.impact));
+      setAiPrediction(parsed);
     } catch(e) {
       console.error("AI predict error:", e);
       setAiPrediction({ impact: null, reason: "Couldn't predict — check your API key.", emoji: "⚠️" });
@@ -824,9 +815,8 @@ Rules: positive = good for life/growth, negative = setback. Scale: minor=0.5-1.5
 
   const confirmLog = () => {
     if (!aiPrediction || aiPrediction.impact === null) return;
-    const finalImpact = editedImpact !== "" && !isNaN(parseFloat(editedImpact)) ? parseFloat(editedImpact) : aiPrediction.impact;
-    execute(`${aiPrediction.emoji || "📌"} ${scenario.slice(0, 65)}`, finalImpact, "event");
-    setScenario(""); setAiPrediction(null); setScenarioImpact(""); setEditedImpact("");
+    execute(`${aiPrediction.emoji || "📌"} ${scenario.slice(0, 65)}`, aiPrediction.impact, "event");
+    setScenario(""); setAiPrediction(null); setScenarioImpact("");
   };
 
   const addYoutubeInterest = async () => {
@@ -1156,56 +1146,102 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <div className="grid grid-cols-5 gap-1 mt-2">{SECTORS.map(s => <div key={s.id} className="text-center"><p className="text-base">{s.emoji}</p><p className="text-[10px] text-[#777]">{Math.round(sectorScores[s.id] || 50)}</p></div>)}</div>
               </div>
 
-              {/* Interest Network Map */}
+              {/* Interest Spider Web */}
               {interests && interests.length > 0 && (() => {
                 const allTopics = [...new Set(interests.flatMap(i => i.topics))];
                 if (allTopics.length < 2) return null;
-                const COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
                 const freq = {};
                 interests.forEach(it => it.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
-                const W = 320, H = 240;
-                // place nodes with natural spread using golden angle
+
+                const W = 320, H = 260, CX = W/2, CY = H/2;
+                // web rings
+                const rings = [0.3, 0.55, 0.8, 1.0];
+                const maxR = Math.min(CX, CY) - 28;
+
+                // spoke positions
                 const pos = {};
                 allTopics.forEach((t, i) => {
-                  const a = i * 2.399; // golden angle
-                  const r = 30 + (i % 3) * 28 + Math.floor(i / 3) * 12;
-                  const cx = W/2 + r * Math.cos(a), cy = H/2 + r * Math.sin(a);
-                  pos[t] = { x: Math.max(20, Math.min(W-20, cx)), y: Math.max(20, Math.min(H-20, cy)) };
+                  const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                  pos[t] = { x: CX + maxR * Math.cos(a), y: CY + maxR * Math.sin(a), a };
                 });
-                const edgeSet = new Set(); const edges = [];
+
+                // web ring polygons
+                const ringPaths = rings.map(r => {
+                  const pts = allTopics.map((t, i) => {
+                    const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                    return `${CX + maxR * r * Math.cos(a)},${CY + maxR * r * Math.sin(a)}`;
+                  });
+                  return pts.join(" ");
+                });
+
+                // spoke lines from center to edge
+                const spokes = allTopics.map((t, i) => {
+                  const a = (i / allTopics.length) * Math.PI * 2 - Math.PI / 2;
+                  return { x: CX + maxR * Math.cos(a), y: CY + maxR * Math.sin(a) };
+                });
+
+                // connection edges between co-occurring topics
+                const edgeSet = new Set();
+                const edges = [];
                 interests.forEach(it => {
-                  for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
-                    const key = [it.topics[a], it.topics[b]].sort().join("|||");
-                    if (!edgeSet.has(key) && pos[it.topics[a]] && pos[it.topics[b]]) {
-                      edgeSet.add(key); edges.push([it.topics[a], it.topics[b]]);
+                  for (let a = 0; a < it.topics.length; a++) {
+                    for (let b = a+1; b < it.topics.length; b++) {
+                      const key = [it.topics[a], it.topics[b]].sort().join("|||");
+                      if (!edgeSet.has(key) && pos[it.topics[a]] && pos[it.topics[b]]) {
+                        edgeSet.add(key);
+                        edges.push([pos[it.topics[a]], pos[it.topics[b]]]);
+                      }
                     }
                   }
                 });
+
+                const maxFreq = Math.max(...Object.values(freq), 1);
+
                 return (
                   <div className="mt-4 border-t border-[#252525] pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <p className="text-xs text-[#aaa] font-medium">Interest Map</p>
-                      <span className="text-[9px] text-[#555] font-mono">{allTopics.length} topics · {interests.length} videos</span>
+                      <p className="text-xs text-[#777]">Interest Map</p>
+                      <span className="text-[9px] text-[#444] font-mono">{allTopics.length} topics · {interests.length} videos</span>
                     </div>
-                    <div className="rounded-xl overflow-hidden bg-[#080808] border border-[#1e1e1e]">
+                    <div className="rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#1e1e1e]">
                       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
-                        {edges.map(([ta, tb], i) => (
-                          <line key={i} x1={pos[ta].x} y1={pos[ta].y} x2={pos[tb].x} y2={pos[tb].y} stroke="#ffffff" strokeWidth="0.5" strokeOpacity="0.12" />
+                        {/* web rings */}
+                        {ringPaths.map((pts, i) => (
+                          <polygon key={i} points={pts} fill="none" stroke="#1e1e1e" strokeWidth="1" />
                         ))}
-                        {allTopics.map((t, i) => {
-                          const p = pos[t]; const color = COLORS[i % COLORS.length];
-                          const r = 4 + (freq[t]||1) * 2;
+                        {/* spokes */}
+                        {spokes.map((p, i) => (
+                          <line key={i} x1={CX} y1={CY} x2={p.x} y2={p.y} stroke="#1a1a1a" strokeWidth="1" />
+                        ))}
+                        {/* connection threads */}
+                        {edges.map(([a, b], i) => (
+                          <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#22c55e" strokeWidth="1" strokeOpacity="0.2" />
+                        ))}
+                        {/* nodes */}
+                        {allTopics.map(t => {
+                          const p = pos[t];
+                          const r = 3 + (freq[t] / maxFreq) * 5;
+                          const hot = freq[t] > 1;
                           return (
                             <g key={t}>
-                              <circle cx={p.x} cy={p.y} r={r+6} fill={color} opacity="0.08" />
-                              <circle cx={p.x} cy={p.y} r={r} fill={color} opacity="0.9" />
-                              <text x={p.x + r + 4} y={p.y + 4} fill="#cccccc" fontSize="8" fontFamily="-apple-system,sans-serif" fontWeight="500">{t}</text>
+                              {hot && <circle cx={p.x} cy={p.y} r={r + 5} fill="#22c55e" opacity="0.05" />}
+                              <circle cx={p.x} cy={p.y} r={r} fill="#141414" stroke={hot ? "#22c55e" : "#2e2e2e"} strokeWidth="1.2" />
+                              <text
+                                x={p.x + (p.x < CX - 5 ? -(r+5) : p.x > CX + 5 ? (r+5) : 0)}
+                                y={p.y + (p.y < CY - 5 ? -(r+4) : p.y > CY + 5 ? (r+10) : 4)}
+                                textAnchor={p.x < CX - 5 ? "end" : p.x > CX + 5 ? "start" : "middle"}
+                                fill={hot ? "#666" : "#444"}
+                                fontSize="7.5"
+                                fontFamily="monospace"
+                              >{t}</text>
                             </g>
                           );
                         })}
+                        {/* center dot */}
+                        <circle cx={CX} cy={CY} r="2" fill="#222" />
                       </svg>
                     </div>
-                    <p className="text-[10px] text-[#444] mt-2 text-center">Lines connect co-occurring topics · bigger = more videos</p>
+                    <p className="text-[10px] text-[#333] mt-2 text-center">Threads connect co-occurring topics · brighter = more videos</p>
                   </div>
                 );
               })()}
@@ -1256,23 +1292,16 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-[#666] font-mono uppercase tracking-wider">AI Prediction</span>
                   {aiPrediction.impact !== null && (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={editedImpact}
-                        onChange={e => setEditedImpact(e.target.value)}
-                        className={`w-20 text-right text-lg font-bold font-mono bg-transparent border-b ${parseFloat(editedImpact||0) >= 0 ? "text-green-400 border-green-900" : "text-red-400 border-red-900"} outline-none`}
-                      />
-                      <span className={`text-lg font-bold font-mono ${parseFloat(editedImpact||0) >= 0 ? "text-green-400" : "text-red-400"}`}>%</span>
-                    </div>
+                    <span className={`text-lg font-bold font-mono ${aiPrediction.impact >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {aiPrediction.impact >= 0 ? "+" : ""}{aiPrediction.impact}%
+                    </span>
                   )}
                 </div>
                 <p className="text-xs text-[#aaa] leading-relaxed mb-3">{aiPrediction.emoji} {aiPrediction.reason}</p>
                 {aiPrediction.impact !== null && (
                   <div className="flex gap-2">
                     <Btn onClick={confirmLog} className="flex-1 text-xs">
-                      ✓ Log {parseFloat(editedImpact||aiPrediction.impact) >= 0 ? "+" : ""}{editedImpact || aiPrediction.impact}% to index
+                      ✓ Log {aiPrediction.impact >= 0 ? "+" : ""}{aiPrediction.impact}% to index
                     </Btn>
                     <button
                       onClick={() => setAiPrediction(null)}
@@ -1358,24 +1387,10 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* HABITS */}
         {view === "habits" && (<>
           <div className="grid sm:grid-cols-2 gap-3">
-            {habits.map(h => {
-              // compute this habit's consecutive-day streak
-              const habitLogs = orderBook.filter(o => o.desc === h.name || (o.tag === "habit" && o.desc.includes(h.name)));
-              const loggedDates = new Set(habitLogs.map(o => o.date));
-              let hStreak = 0;
-              const d = new Date(); d.setHours(0,0,0,0);
-              while (true) {
-                const ds = d.toISOString().split("T")[0];
-                if (!loggedDates.has(ds)) break;
-                hStreak++; d.setDate(d.getDate() - 1);
-              }
-              return (
+            {habits.map(h => (
               <div key={h.id} className={`${C.card} border ${C.border} rounded-2xl p-4 flex items-center justify-between`}>
                 <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-medium text-[#ddd] text-sm">{h.emoji}{h.name}</p>
-                    {hStreak > 0 && <span className="text-[9px] font-mono text-orange-500 bg-orange-950/20 border border-orange-900/20 px-1.5 py-0.5 rounded-full">🔥{hStreak}d</span>}
-                  </div>
+                  <p className="font-medium text-[#ddd] text-sm">{h.emoji}{h.name}</p>
                   <p className={`text-xs mt-0.5 font-mono ${h.impact >= 0 ? "text-green-600" : "text-red-600"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</p>
                   <p className="text-[10px] text-[#777] mt-0.5">{SECTORS.find(s => s.id === h.sector)?.emoji}{SECTORS.find(s => s.id === h.sector)?.label}</p>
                 </div>
@@ -1384,8 +1399,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                   <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} className="text-[#444] hover:text-red-600"><Trash2 size={15} /></button>
                 </div>
               </div>
-              );
-            })}
+            ))}
           </div>
           <Card>
             <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#ddd] text-sm">Add Habit</h3><InfoTooltip feature="habits" /></div>
@@ -1442,25 +1456,9 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               <div className="space-y-2">
                 {pnl.map(m => (
                   <div key={m.month} className="flex items-center justify-between bg-[#141414] border border-[#252525] rounded-xl px-4 py-3">
-                    <span className="text-xs text-[#777] font-mono w-10">{m.month}</span>
-                    <div className="flex gap-4">
-                      <div className="text-center">
-                        <p className="text-xs text-green-600 font-mono">+{fmt(m.gain)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">gains</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-red-600 font-mono">{fmt(m.loss)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">losses</p>
-                      </div>
-                      <div className="text-center">
-                        <p className={`text-xs font-bold font-mono ${m.gain + m.loss >= 0 ? "text-green-500" : "text-red-500"}`}>{m.gain + m.loss >= 0 ? "+" : ""}{fmt(m.gain + m.loss)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">net</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-[#4a4a4a]">{m.count}</p>
-                      <p className="text-[9px] text-[#333]">logs</p>
-                    </div>
+                    <span className="text-xs text-[#777] font-mono">{m.month}</span>
+                    <div className="flex gap-4"><span className="text-xs text-green-600 font-mono">+{fmt(m.gain)}%</span><span className="text-xs text-red-600 font-mono">{fmt(m.loss)}%</span><span className={`text-xs font-bold font-mono ${m.gain + m.loss >= 0 ? "text-green-500" : "text-red-500"}`}>{m.gain + m.loss >= 0 ? "+" : ""}{fmt(m.gain + m.loss)}%</span></div>
+                    <span className="text-[10px] text-[#4a4a4a]">{m.count} logs</span>
                   </div>
                 ))}
               </div>
@@ -1632,26 +1630,30 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           {/* Interest Canvas */}
           {interests.length > 1 && (() => {
             const allTopics = [...new Set(interests.flatMap(i => i.topics))];
-            const COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
             const freq = {};
             interests.forEach(i => i.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
 
-            const W = 520, H = 320;
-            // golden-angle spiral gives natural cluster-like spread
-            const pos = {};
+            const W = 360, H = 300, CX = W/2, CY = H/2;
+            const R = Math.min(CX, CY) - 50;
+
+            const topicPos = {};
             allTopics.forEach((t, i) => {
-              const a = i * 2.399;
-              const r = 40 + (i % 4) * 38 + Math.floor(i / 4) * 14;
-              const cx = W/2 + r * Math.cos(a), cy = H/2 + r * Math.sin(a);
-              pos[t] = { x: Math.max(30, Math.min(W-60, cx)), y: Math.max(18, Math.min(H-18, cy)) };
+              const angle = (i / allTopics.length) * Math.PI * 2 - Math.PI/2;
+              topicPos[t] = { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) };
             });
 
-            const edgeSet = new Set(); const edges = [];
+            // edges from shared topics within same video
+            const edgeSet = new Set();
+            const edges = [];
             interests.forEach(item => {
-              for (let a = 0; a < item.topics.length; a++) for (let b = a+1; b < item.topics.length; b++) {
-                const key = [item.topics[a], item.topics[b]].sort().join("|||");
-                if (!edgeSet.has(key) && pos[item.topics[a]] && pos[item.topics[b]]) {
-                  edgeSet.add(key); edges.push([item.topics[a], item.topics[b]]);
+              for (let a = 0; a < item.topics.length; a++) {
+                for (let b = a+1; b < item.topics.length; b++) {
+                  const ta = item.topics[a], tb = item.topics[b];
+                  const key = [ta, tb].sort().join("||");
+                  if (!edgeSet.has(key) && topicPos[ta] && topicPos[tb]) {
+                    edgeSet.add(key);
+                    edges.push({ x1: topicPos[ta].x, y1: topicPos[ta].y, x2: topicPos[tb].x, y2: topicPos[tb].y });
+                  }
                 }
               }
             });
@@ -1662,34 +1664,27 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                   <Layers size={14} className="text-[#777]" />Interest Canvas
                   <span className="ml-auto text-[10px] text-[#555] font-mono font-normal">{allTopics.length} topics · {interests.length} videos</span>
                 </h2>
-                <p className="text-[10px] text-[#555] mb-3">Connected topics come from the same video. Bigger node = more appearances.</p>
-                <div className="rounded-2xl overflow-hidden bg-[#060606] border border-[#1a1a1a]">
+                <p className="text-[10px] text-[#444] mb-4">Lines connect topics that appear together. Bigger nodes = more videos.</p>
+                <div className="rounded-2xl overflow-hidden bg-[#0a0a0a] border border-[#1e1e1e]">
                   <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
-                    {/* edges first — thin white lines like the reference */}
-                    {edges.map(([ta, tb], i) => (
-                      <line key={i}
-                        x1={pos[ta].x} y1={pos[ta].y}
-                        x2={pos[tb].x} y2={pos[tb].y}
-                        stroke="#ffffff" strokeWidth="0.6" strokeOpacity="0.1"
-                      />
+                    {/* grid dots */}
+                    {Array.from({length:6},(_,r)=>Array.from({length:8},(_,c)=>(
+                      <circle key={`${r}-${c}`} cx={c*52+20} cy={r*50+25} r="1" fill="#1a1a1a"/>
+                    )))}
+                    {/* edges */}
+                    {edges.map((e,i) => (
+                      <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#2e2e2e" strokeWidth="1.5" strokeLinecap="round"/>
                     ))}
-                    {/* colored nodes + bright labels */}
-                    {allTopics.map((t, i) => {
-                      const p = pos[t];
-                      const color = COLORS[i % COLORS.length];
-                      const r = 4 + (freq[t]||1) * 2.5;
+                    {/* nodes */}
+                    {allTopics.map(t => {
+                      const p = topicPos[t];
+                      const r = 5 + (freq[t]||1) * 4;
+                      const isHot = freq[t] > 1;
                       return (
                         <g key={t}>
-                          <circle cx={p.x} cy={p.y} r={r + 8} fill={color} opacity="0.07" />
-                          <circle cx={p.x} cy={p.y} r={r} fill={color} />
-                          <text
-                            x={p.x + r + 5}
-                            y={p.y + 4}
-                            fill="#e8e8e8"
-                            fontSize="9.5"
-                            fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                            fontWeight="500"
-                          >{t}</text>
+                          {isHot && <circle cx={p.x} cy={p.y} r={r+4} fill={isHot?"#22c55e":"#444"} opacity="0.06"/>}
+                          <circle cx={p.x} cy={p.y} r={r} fill="#1a1a1a" stroke={isHot?"#22c55e33":"#333"} strokeWidth="1.5"/>
+                          <text x={p.x} y={p.y - r - 5} textAnchor="middle" fill={isHot?"#666":"#555"} fontSize="8" fontFamily="monospace">{t}</text>
                         </g>
                       );
                     })}
@@ -1860,36 +1855,21 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 Your name, ticker, chart and stats are made publicly readable when enabled.
               </p>
 
-              {/* Firestore rules notice — always shown */}
-              <div className="bg-[#0d0d0d] border border-[#222] rounded-xl p-3 mb-3 text-[10px] text-[#555] leading-relaxed font-mono">
-                <p className="text-[#666] font-semibold mb-1.5 font-sans text-xs">⚠️ Required: Firestore security rule</p>
-                <p className="mb-1.5">Add this in <span className="text-[#888]">Firebase Console → Firestore → Rules</span> then click Publish:</p>
-                <div className="bg-[#111] border border-[#1e1e1e] rounded-lg p-2 space-y-0.5">
-                  <p className="text-[#666]">{"match /public/{userId} {"}</p>
-                  <p className="text-[#22c55e] pl-3">{"  allow read: if true;"}</p>
-                  <p className="text-[#888] pl-3">{"  allow write: if request.auth.uid == userId;"}</p>
-                  <p className="text-[#666]">{"}"}</p>
-                </div>
-                <p className="mt-1.5 text-[#444]">Without this rule the widget cannot read your data.</p>
-              </div>
-
               {/* Toggle */}
-              <div className="flex items-center justify-between bg-[#181818] border border-[#252525] rounded-xl px-4 py-3 mb-3">
+              <div className="flex items-center justify-between bg-[#181818] border border-[#252525] rounded-xl px-4 py-3 mb-4">
                 <div>
                   <p className="text-sm text-[#ddd] font-medium">Enable public widget</p>
-                  <p className="text-xs text-[#666] mt-0.5">{widgetEnabled ? "Syncing real chart data publicly" : "Widget is private"}</p>
+                  <p className="text-xs text-[#666] mt-0.5">{widgetEnabled ? "Your chart is publicly embeddable" : "Widget is private"}</p>
                 </div>
                 <button
                   onClick={async () => {
                     setWidgetLoading(true);
-                    setWidgetSyncStatus(null);
                     try {
                       if (widgetEnabled) {
                         await unpublishPublicWidget(uid);
                         setWidgetEnabled(false);
-                        setWidgetSyncStatus(null);
                       } else {
-                        const wdata = {
+                        await publishPublicWidget(uid, {
                           name: config.name,
                           ticker,
                           currency: CURRENCIES[config.country]?.code || "USD",
@@ -1898,85 +1878,18 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                           allTime,
                           streak,
                           chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
-                          lastUpdated: Date.now(),
-                        };
-                        await publishPublicWidget(uid, wdata);
-                        // Verify the write actually landed by reading it back
-                        const snap = await getDoc(doc(db, "public", uid));
-                        if (!snap.exists()) throw new Error("Write succeeded but doc not found — check Firestore rules.");
-                        const saved = snap.data();
-                        if (!saved.chartData || saved.chartData.length === 0) throw new Error("Chart data missing in Firestore doc.");
+                        });
                         setWidgetEnabled(true);
-                        setWidgetSyncStatus('ok');
-                        setWidgetSyncMsg(`✓ ${saved.chartData.length} data points synced`);
                       }
-                    } catch(e) {
-                      setWidgetSyncStatus('error');
-                      setWidgetSyncMsg(e?.message || "Unknown error");
-                      if (e?.message?.includes('permission') || e?.code === 'permission-denied') {
-                        setWidgetSyncMsg("Permission denied — Firestore rule not set. See instructions above.");
-                      }
-                    }
+                    } catch(e) { alert("Error: " + e.message); }
                     setWidgetLoading(false);
                   }}
                   disabled={widgetLoading}
                   className={`relative w-12 h-6 rounded-full transition-all duration-300 ${widgetEnabled ? "bg-green-600" : "bg-[#2a2a2a]"} disabled:opacity-50`}
                 >
-                  {widgetLoading
-                    ? <span className="absolute inset-0 flex items-center justify-center"><span className="w-3 h-3 border border-[#555] border-t-white rounded-full animate-spin" /></span>
-                    : <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${widgetEnabled ? "translate-x-6" : "translate-x-0"}`} />
-                  }
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${widgetEnabled ? "translate-x-6" : "translate-x-0"}`} />
                 </button>
               </div>
-
-              {/* Sync status */}
-              {widgetSyncStatus === 'ok' && (
-                <div className="flex items-center gap-2 bg-green-950/20 border border-green-900/30 rounded-xl px-3 py-2 mb-3">
-                  <span className="text-green-500 text-xs">✓</span>
-                  <p className="text-xs text-green-600">{widgetSyncMsg || "Widget synced successfully"}</p>
-                </div>
-              )}
-              {widgetSyncStatus === 'error' && (
-                <div className="bg-red-950/20 border border-red-900/30 rounded-xl px-3 py-2 mb-3">
-                  <p className="text-xs text-red-500 font-medium mb-0.5">Sync failed</p>
-                  <p className="text-[10px] text-red-900">{widgetSyncMsg}</p>
-                </div>
-              )}
-
-              {/* Force resync button when enabled */}
-              {widgetEnabled && (
-                <button
-                  onClick={async () => {
-                    setWidgetLoading(true);
-                    setWidgetSyncStatus(null);
-                    try {
-                      const wdata = {
-                        name: config.name, ticker,
-                        currency: CURRENCIES[config.country]?.code || "USD",
-                        startPrice: config.startPrice,
-                        currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
-                        allTime, streak,
-                        chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
-                        lastUpdated: Date.now(),
-                      };
-                      await publishPublicWidget(uid, wdata);
-                      const snap = await getDoc(doc(db, "public", uid));
-                      if (!snap.exists()) throw new Error("Doc not found after write");
-                      const pts = snap.data().chartData?.length || 0;
-                      setWidgetSyncStatus('ok');
-                      setWidgetSyncMsg(`✓ ${pts} data points synced to widget`);
-                    } catch(e) {
-                      setWidgetSyncStatus('error');
-                      setWidgetSyncMsg(e?.message?.includes('permission') ? "Permission denied — check Firestore rules above" : (e?.message || "Sync failed"));
-                    }
-                    setWidgetLoading(false);
-                  }}
-                  disabled={widgetLoading}
-                  className="w-full text-xs text-[#666] border border-[#252525] rounded-xl py-2 hover:text-[#aaa] hover:border-[#333] transition-all mb-3 disabled:opacity-40"
-                >
-                  {widgetLoading ? "Syncing…" : "↻ Force resync chart data"}
-                </button>
-              )}
 
               {widgetEnabled && (
                 <div className="space-y-3">

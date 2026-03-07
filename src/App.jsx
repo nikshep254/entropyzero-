@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, setDoc, getDoc, deleteDoc, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, deleteDoc, updateDoc, deleteField, collection, addDoc, query, orderBy, getDocs } from "firebase/firestore";
 import { auth, db, googleProvider } from "./firebase.js";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
 import { TrendingUp, Activity, Plus, Trash2, Send, ChevronRight, ChevronLeft, Check, X, Download, Upload, BarChart2, BookOpen, Settings, Zap, Newspaper, Star, AlertTriangle, Brain, Target, Calendar, Award, Flame, Moon, Layers, Info, GitMerge, Sparkles } from "lucide-react";
@@ -983,10 +983,14 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [saving, setSaving]               = useState(false);
   const [lastSaved, setLastSaved]         = useState(null);
 
-  // Save all state to persistent storage whenever anything changes
+  // Save all state to persistent storage whenever anything changes (debounced 800ms)
+  const saveTimerRef = useRef(null);
   useEffect(() => {
     if (!uid) return;
+    // Debounce: cancel pending save, wait 800ms of inactivity before writing
+    clearTimeout(saveTimerRef.current);
     setSaving(true);
+    saveTimerRef.current = setTimeout(async () => {
     const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
     const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests });
     const topicsForWidget = [...new Set((interests||[]).flatMap(i => i.topics))];
@@ -1015,16 +1019,17 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
       : interestEnabled
         ? publishPublicWidget(uid, { interestTopics: topicsForWidget, interestEdges: edgesForWidget, interestName: config.name, name: config.name })
         : Promise.resolve();
-    Promise.all([saveAll, saveWidget])
-      .then(() => {
+      try {
+        await Promise.all([saveAll, saveWidget]);
         setLastSaved(new Date()); setSaving(false);
         if (widgetEnabled) setWidgetSyncStatus('ok');
-      })
-      .catch(e => {
+      } catch(e) {
         console.error("Save error:", e); setSaving(false);
         if (widgetEnabled) { setWidgetSyncStatus('error'); setWidgetSyncMsg(e?.message || "Unknown error"); }
-      });
-  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled, interestEnabled]);
+      }
+    }, 800);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [uid, config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled, interestEnabled]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -1977,20 +1982,41 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                         });
                         return arr;
                       })();
+                      const ref = doc(db, "public", uid);
                       if (!interestEnabled) {
-                        await setDoc(doc(db, "public", uid), { interestTopics: topicsNow, interestEdges: edgesNow, interestName: config.name, lastUpdated: Date.now() }, { merge: true });
+                        // Merge into existing doc (creates it if needed)
+                        await setDoc(ref, {
+                          interestTopics: topicsNow,
+                          interestEdges: edgesNow,
+                          interestName: config.name,
+                          name: config.name,
+                          lastUpdated: Date.now()
+                        }, { merge: true });
+                        // Verify it landed
+                        const snap = await getDoc(ref);
+                        if (!snap.exists() || !snap.data().interestTopics?.length)
+                          throw new Error("Firestore write failed — check your Firestore rules allow write to /public/{userId}");
                         setInterestEnabled(true);
                       } else {
-                        // Remove interest fields only — keep chart widget if present
-                        const snap = await getDoc(doc(db, "public", uid));
-                        if (snap.exists()) {
-                          const d = snap.data();
-                          delete d.interestTopics; delete d.interestEdges; delete d.interestName;
-                          await setDoc(doc(db, "public", uid), d);
-                        }
+                        // Use updateDoc + deleteField to surgically remove only interest fields
+                        await updateDoc(ref, {
+                          interestTopics: deleteField(),
+                          interestEdges:  deleteField(),
+                          interestName:   deleteField(),
+                        });
                         setInterestEnabled(false);
                       }
-                    } catch(e) { alert("Error: " + e.message); }
+                    } catch(e) {
+                      const isPerm = e.code === "permission-denied" || (e.message||"").includes("permission") || (e.message||"").includes("Firestore");
+                      alert(isPerm
+                        ? "Permission denied — add this Firestore rule:
+
+match /public/{userId} {
+  allow read: if true;
+  allow write: if request.auth.uid == userId;
+}"
+                        : "Error: " + e.message);
+                    }
                   }}
                   className={`relative w-12 h-6 rounded-full transition-all duration-300 ${interestEnabled ? "bg-violet-600" : "bg-[#222]"}`}
                 >
@@ -2553,6 +2579,83 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     ⚠️ Widget data updates every time you save. Toggle off to remove public access instantly.
                   </p>
                 </div>
+              )}
+            </Card>
+
+            <Card>
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-1">
+                <span className="text-base">🕸️</span> Interest Web Embed
+              </h2>
+              <p className="text-xs text-[#888] mb-4 leading-relaxed">
+                Share your live interest network as an embeddable bento card. Updates automatically as you add videos.
+              </p>
+
+              <div className="flex items-center justify-between bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 mb-3">
+                <div>
+                  <p className="text-sm text-[#f0f0f0] font-medium">Enable public interest web</p>
+                  <p className="text-xs text-[#888] mt-0.5">{interestEnabled ? "Publicly embeddable" : "Private"}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const ref = doc(db, "public", uid);
+                      const topicsNow = [...new Set(interests.flatMap(i => i.topics))];
+                      const edgesNow = (() => {
+                        const es = new Set(), arr = [];
+                        interests.forEach(it => {
+                          for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
+                            const k = [it.topics[a],it.topics[b]].sort().join("|||");
+                            if (!es.has(k)) { es.add(k); arr.push([it.topics[a],it.topics[b]]); }
+                          }
+                        });
+                        return arr;
+                      })();
+                      if (!interestEnabled) {
+                        await setDoc(ref, { interestTopics: topicsNow, interestEdges: edgesNow, interestName: config.name, name: config.name, lastUpdated: Date.now() }, { merge: true });
+                        const snap = await getDoc(ref);
+                        if (!snap.exists() || !snap.data().interestTopics?.length) throw new Error("Write failed — check Firestore rules");
+                        setInterestEnabled(true);
+                      } else {
+                        await updateDoc(ref, { interestTopics: deleteField(), interestEdges: deleteField(), interestName: deleteField() });
+                        setInterestEnabled(false);
+                      }
+                    } catch(e) {
+                      const isPerm = e.code==="permission-denied"||(e.message||"").includes("permission")||(e.message||"").includes("failed");
+                      alert(isPerm ? "Permission denied — add Firestore rule:\n\nmatch /public/{userId} {\n  allow read: if true;\n  allow write: if request.auth.uid == userId;\n}" : "Error: "+e.message);
+                    }
+                  }}
+                  className={`relative w-12 h-6 rounded-full transition-all ${interestEnabled ? "bg-violet-600" : "bg-[#222]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${interestEnabled ? "translate-x-6" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              {interestEnabled && interests.length > 1 && (
+                <div className="space-y-3">
+                  {[
+                    { label: "iframe embed", desc: "Paste anywhere — Notion, GitHub, websites", code: `<iframe src="https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}" width="480" height="360" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#050505"></iframe>` },
+                    { label: "Canvas URL",   desc: "Direct shareable link",                    code: `https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}` },
+                  ].map(({ label, desc, code }) => (
+                    <div key={label} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-[#bbb]">{label}</p>
+                        <button onClick={() => { navigator.clipboard.writeText(code); setInterestCopied(label+"s"); setTimeout(()=>setInterestCopied(""),2000); }}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-[#999] hover:text-white hover:border-[#444] transition-all">
+                          {interestCopied===label+"s" ? "✓ Copied!" : "Copy"}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-[#777] mb-2">{desc}</p>
+                      <code className="text-[9px] text-[#777] break-all leading-relaxed block font-mono">{code}</code>
+                    </div>
+                  ))}
+                  <a href={`https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}`} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full text-xs text-[#888] border border-[#2a2a2a] rounded-xl py-2.5 hover:text-white hover:border-[#444] transition-all">
+                    ↗ Open live preview
+                  </a>
+                </div>
+              )}
+              {interestEnabled && interests.length <= 1 && (
+                <p className="text-xs text-[#666] text-center py-2">Add at least 2 videos in Interests tab first</p>
               )}
             </Card>
 

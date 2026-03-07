@@ -1884,58 +1884,86 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* SETTINGS */}
         {/* CHANGELOG */}
         {view === "changelog" && (
-          <div className="space-y-0">
-            {/* Header */}
-            <div className="relative overflow-hidden rounded-2xl mb-4" style={{background:"linear-gradient(135deg,#1a0533 0%,#0a1a2e 50%,#001a10 100%)"}}>
-              <div className="absolute inset-0 opacity-30" style={{backgroundImage:"radial-gradient(circle at 20% 50%, #7c3aed 0%, transparent 50%), radial-gradient(circle at 80% 20%, #0ea5e9 0%, transparent 50%), radial-gradient(circle at 60% 80%, #10b981 0%, transparent 50%)"}} />
-              <div className="relative px-5 py-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <GitMerge size={14} className="text-[#7c3aed]" />
-                  <span className="text-[10px] font-mono text-[#555] uppercase tracking-widest">Release notes</span>
+          <div className="-mx-4 -mt-2">
+            {/* ── Hero header — dithered dot gradient like reference image ── */}
+            <div className="relative overflow-hidden" style={{height:"180px"}}>
+              {/* base gradient: deep blue → cyan */}
+              <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0a0a1a 0%,#001a3a 30%,#003a6a 60%,#0077aa 100%)"}} />
+              {/* dot-pattern dither overlay — pure CSS SVG data-uri */}
+              <div className="absolute inset-0 opacity-60" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='0.9' fill='%2300aaff' opacity='0.5'/%3E%3C/svg%3E")`, backgroundSize:"6px 6px"}} />
+              {/* fade bottom to black */}
+              <div className="absolute inset-0" style={{background:"linear-gradient(to bottom, transparent 30%, #0d0d0d 100%)"}} />
+              <div className="relative px-5 pt-8 pb-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <GitMerge size={13} className="text-white opacity-70" />
+                  <span className="text-[11px] font-medium text-white opacity-70 tracking-wide">Changelog</span>
                 </div>
-                <h1 className="text-xl font-bold text-[#e8e8e8] leading-tight mb-1">What&apos;s been built</h1>
-                <p className="text-xs text-[#555]">{CHANGELOG.reduce((s, v) => s + v.changes.length, 0)} changes across {CHANGELOG.length} releases</p>
+                <h1 className="text-2xl font-bold text-white leading-snug">
+                  Latest Enhancements<br />&amp; Platform News
+                </h1>
               </div>
             </div>
 
-            {CHANGELOG.map((release, ri) => (
-              <div key={release.version} className="relative">
-                {/* version header */}
-                <div className="flex items-center gap-3 py-3">
-                  <div className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg border ${
-                    release.tag === "major" ? "bg-violet-950/30 border-violet-800/30 text-violet-400" :
-                    release.tag === "feature" ? "bg-blue-950/30 border-blue-800/30 text-blue-400" :
-                    "bg-orange-950/30 border-orange-800/30 text-orange-400"
-                  }`}>{release.version}</div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#ddd]">{release.title}</p>
-                    <p className="text-[10px] text-[#444] font-mono">{release.date}</p>
-                  </div>
-                  <span className="text-[9px] text-[#333] font-mono">{release.changes.length} changes</span>
-                </div>
-
-                {/* changes */}
-                <div className="ml-2 border-l border-[#1e1e1e] pl-4 pb-4 space-y-2">
-                  {release.changes.map((c, ci) => (
-                    <div key={ci} className="flex items-start gap-2.5">
-                      <span className={`mt-0.5 flex-shrink-0 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                        c.type === "fix" ? "bg-orange-950/40 text-orange-500 border border-orange-900/30" :
-                        c.type === "feature" ? "bg-green-950/40 text-green-500 border border-green-900/30" :
-                        "bg-blue-950/40 text-blue-500 border border-blue-900/30"
-                      }`}>
-                        {c.type === "fix" ? "FIX" : c.type === "feature" ? "NEW" : "CHG"}
-                      </span>
-                      <p className="text-xs text-[#888] leading-relaxed">{c.text}</p>
+            {/* ── Release list ── */}
+            <div className="px-4 space-y-0">
+              {CHANGELOG.map((release, ri) => {
+                // gradient colours per release so each card looks distinct
+                const cardGrads = [
+                  "linear-gradient(135deg,#0f0f1a 0%,#141414 100%)",
+                  "linear-gradient(135deg,#0a0f0a 0%,#141414 100%)",
+                  "linear-gradient(135deg,#1a0f00 0%,#141414 100%)",
+                  "linear-gradient(135deg,#0a0a1a 0%,#141414 100%)",
+                  "linear-gradient(135deg,#1a001a 0%,#141414 100%)",
+                  "linear-gradient(135deg,#001a0f 0%,#141414 100%)",
+                ];
+                const grad = cardGrads[ri % cardGrads.length];
+                return (
+                  <div key={release.version} className="py-10 border-b border-[#1a1a1a] last:border-0">
+                    {/* date + meta */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-sm font-medium text-[#666]">{release.date}</span>
+                      <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border ${
+                        release.tag === "major" ? "border-violet-800/40 text-violet-400 bg-violet-950/30" :
+                        release.tag === "fix"   ? "border-orange-800/40 text-orange-400 bg-orange-950/30" :
+                                                  "border-blue-800/40 text-blue-400 bg-blue-950/30"
+                      }`}>{release.version}</span>
                     </div>
-                  ))}
-                </div>
 
-                {ri < CHANGELOG.length - 1 && <div className="h-px bg-[#141414] mx-0 mb-1" />}
+                    {/* big title */}
+                    <h2 className="text-2xl font-semibold text-[#e8e8e8] mb-4 leading-snug">{release.title}</h2>
+
+                    {/* dark image card */}
+                    <div className="relative rounded-2xl overflow-hidden mb-5 border border-[#1e1e1e]" style={{height:"160px", background: grad}}>
+                      {/* dot dither layer */}
+                      <div className="absolute inset-0 opacity-20" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='5'%3E%3Ccircle cx='2.5' cy='2.5' r='0.8' fill='%23ffffff'/%3E%3C/svg%3E")`, backgroundSize:"5px 5px"}} />
+                      {/* centered version label */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[#333] text-lg font-bold font-mono tracking-widest">{release.version}: {release.title}</span>
+                      </div>
+                      {/* bottom fade */}
+                      <div className="absolute bottom-0 left-0 right-0 h-12" style={{background:"linear-gradient(to top, rgba(13,13,13,0.7), transparent)"}} />
+                    </div>
+
+                    {/* changes list */}
+                    <div className="space-y-2.5">
+                      {release.changes.map((c, ci) => (
+                        <div key={ci} className="flex items-start gap-2.5">
+                          <span className={`mt-0.5 flex-shrink-0 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border ${
+                            c.type === "fix"     ? "bg-orange-950/40 text-orange-400 border-orange-900/30" :
+                            c.type === "feature" ? "bg-green-950/40 text-green-400 border-green-900/30" :
+                                                   "bg-blue-950/40 text-blue-400 border-blue-900/30"
+                          }`}>{c.type === "fix" ? "FIX" : "NEW"}</span>
+                          <p className="text-sm text-[#aaa] leading-relaxed">{c.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="py-6 text-center">
+                <p className="text-[10px] text-[#333] font-mono">entropyzero · {new Date().getFullYear()}</p>
               </div>
-            ))}
-
-            <div className="pt-2 pb-4 text-center">
-              <p className="text-[10px] text-[#333] font-mono">Built with entropyzero AI · {new Date().getFullYear()}</p>
             </div>
           </div>
         )}
@@ -2027,19 +2055,6 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 Embed your live life index chart on any website — your portfolio, Notion, GitHub profile, anywhere.
                 Your name, ticker, chart and stats are made publicly readable when enabled.
               </p>
-
-              {/* Firestore rules notice — always shown */}
-              <div className="bg-[#0d0d0d] border border-[#222] rounded-xl p-3 mb-3 text-[10px] text-[#555] leading-relaxed font-mono">
-                <p className="text-[#666] font-semibold mb-1.5 font-sans text-xs">⚠️ Required: Firestore security rule</p>
-                <p className="mb-1.5">Add this in <span className="text-[#888]">Firebase Console → Firestore → Rules</span> then click Publish:</p>
-                <div className="bg-[#111] border border-[#1e1e1e] rounded-lg p-2 space-y-0.5">
-                  <p className="text-[#666]">{"match /public/{userId} {"}</p>
-                  <p className="text-[#22c55e] pl-3">{"  allow read: if true;"}</p>
-                  <p className="text-[#888] pl-3">{"  allow write: if request.auth.uid == userId;"}</p>
-                  <p className="text-[#666]">{"}"}</p>
-                </div>
-                <p className="mt-1.5 text-[#444]">Without this rule the widget cannot read your data.</p>
-              </div>
 
               {/* Toggle */}
               <div className="flex items-center justify-between bg-[#181818] border border-[#252525] rounded-xl px-4 py-3 mb-3">
@@ -2135,7 +2150,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                       setWidgetSyncMsg(`✓ ${pts} data points synced to widget`);
                     } catch(e) {
                       setWidgetSyncStatus('error');
-                      setWidgetSyncMsg(e?.message?.includes('permission') ? "Permission denied — check Firestore rules above" : (e?.message || "Sync failed"));
+                      setWidgetSyncMsg(e?.message?.includes('permission') ? "Permission denied — widget cannot read data. Contact support." : (e?.message || "Sync failed"));
                     }
                     setWidgetLoading(false);
                   }}

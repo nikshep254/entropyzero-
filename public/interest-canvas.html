@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>entropyzero · Interest Web</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#050505; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#e8e8e8; display:flex; flex-direction:column; min-height:100vh; }
+    .header { padding:16px 20px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #111; }
+    .brand { display:flex; align-items:center; gap:8px; }
+    .brand-dot { width:7px; height:7px; border-radius:50%; background:#a78bfa; }
+    .brand-name { font-size:12px; color:#555; font-weight:600; }
+    .meta { font-size:10px; color:#333; font-family:monospace; }
+    .canvas-wrap { flex:1; position:relative; }
+    canvas { width:100%; height:100%; display:block; }
+    .footer { padding:10px 20px; border-top:1px solid #0d0d0d; display:flex; align-items:center; justify-content:space-between; }
+    .footer-left { font-size:9px; color:#333; font-family:monospace; }
+    .footer-link { font-size:9px; color:#444; text-decoration:none; border:1px solid #1a1a1a; border-radius:6px; padding:3px 8px; }
+    .footer-link:hover { color:#aaa; border-color:#333; }
+    .center { display:flex; align-items:center; justify-content:center; flex:1; flex-direction:column; gap:10px; padding:40px; text-align:center; }
+    .center-icon { font-size:28px; opacity:0.3; }
+    .center-title { color:#555; font-size:13px; font-weight:600; }
+    .center-detail { color:#333; font-size:10px; font-family:monospace; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    <span class="brand-name">entropyzero</span>
+  </div>
+  <span class="meta" id="meta">Interest Web</span>
+</div>
+
+<div class="canvas-wrap" id="wrap">
+  <div class="center" id="state">
+    <div class="center-icon">🕸️</div>
+    <div class="center-title">Loading…</div>
+  </div>
+  <canvas id="canvas" style="display:none"></canvas>
+</div>
+
+<div class="footer">
+  <span class="footer-left" id="footer-left">—</span>
+  <a class="footer-link" href="https://entropyzero.vercel.app" target="_blank">View full index →</a>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const db = getFirestore(initializeApp({
+  apiKey:"AIzaSyBuPTw6WpRTWSDhs_L_W9OELFP6ff6Ki0c",
+  authDomain:"copiumai-9f5b6.firebaseapp.com",
+  projectId:"copiumai-9f5b6",
+  storageBucket:"copiumai-9f5b6.firebasestorage.app",
+  messagingSenderId:"164793994267",
+  appId:"1:164793994267:web:f9d3594cca736c7fa67cbe"
+}));
+
+const uid = new URLSearchParams(window.location.search).get("uid");
+const stateEl   = document.getElementById("state");
+const canvasEl  = document.getElementById("canvas");
+const metaEl    = document.getElementById("meta");
+const footerL   = document.getElementById("footer-left");
+const wrap      = document.getElementById("wrap");
+
+function showError(icon, title, detail) {
+  stateEl.innerHTML = `<div class="center-icon">${icon}</div><div class="center-title">${title}</div><div class="center-detail">${detail}</div>`;
+}
+
+if (!uid) {
+  showError("🔗","No user ID","Add ?uid=YOUR_USER_ID");
+} else {
+  getDoc(doc(db,"public",uid)).then(snap => {
+    if (!snap.exists()) return showError("🔒","Not shared","User hasn't enabled their interest web.");
+    const d = snap.data();
+    if (!d.interestTopics || d.interestTopics.length < 2) return showError("🕸️","No interest data","Add videos in the Interests tab first.");
+    render(d.interestTopics, d.interestEdges || [], d.interestName || "");
+  }).catch(e => {
+    const perm = e.code === "permission-denied" || (e.message||"").includes("permission");
+    showError(perm?"🛡️":"⚠️", perm?"Permission denied":"Could not load", e.message||"Unknown error");
+  });
+}
+
+const COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
+
+function render(topics, edges, name) {
+  stateEl.style.display = "none";
+  canvasEl.style.display = "block";
+  metaEl.textContent = `${topics.length} interest topics`;
+  footerL.textContent = name ? `${name} · ${topics.length} topics` : `${topics.length} topics`;
+
+  const dpr = window.devicePixelRatio || 1;
+  const resize = () => {
+    const W = wrap.offsetWidth, H = wrap.offsetHeight || window.innerHeight - 100;
+    canvasEl.width  = W * dpr;
+    canvasEl.height = H * dpr;
+    canvasEl.style.width  = W + "px";
+    canvasEl.style.height = H + "px";
+    return { W, H };
+  };
+
+  let { W, H } = resize();
+  const ctx = canvasEl.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  // Seed nodes
+  const freq = {};
+  topics.forEach(t => { freq[t] = (edges.filter(e => e.includes(t)).length || 1); });
+
+  let nodes = topics.map((t, i) => {
+    const a = i * 2.399, r = 40 + (i%3)*28 + Math.floor(i/3)*12;
+    return {
+      id:t, color:COLORS[i%COLORS.length],
+      r: 4 + (freq[t]||1) * 2.5,
+      x: W/2 + r*Math.cos(a) + (Math.random()-.5)*10,
+      y: H/2 + r*Math.sin(a) + (Math.random()-.5)*10,
+      vx:(Math.random()-.5)*1.5, vy:(Math.random()-.5)*1.5
+    };
+  });
+
+  let frame = 0;
+  const tick = () => {
+    frame++;
+    const nm = {};
+    nodes.forEach(n => { nm[n.id] = n; });
+
+    const temp = Math.max(0.1, 1 - frame/280);
+    const MARGIN = 16, rest = Math.min(W,H)*0.26;
+
+    for (let i=0; i<nodes.length; i++) {
+      const a = nodes[i];
+      a.vx += (W/2-a.x)*0.001;
+      a.vy += (H/2-a.y)*0.001;
+      for (let j=i+1; j<nodes.length; j++) {
+        const b = nodes[j];
+        const dx=a.x-b.x, dy=a.y-b.y;
+        const d2=dx*dx+dy*dy||0.01, d=Math.sqrt(d2);
+        const f=Math.min(800,1400/d2);
+        const fx=dx/d*f, fy=dy/d*f;
+        a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+      }
+    }
+    edges.forEach(([ta,tb]) => {
+      const a=nm[ta], b=nm[tb];
+      if(!a||!b) return;
+      const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+      const f=(d-rest)*0.030;
+      const fx=dx/d*f, fy=dy/d*f;
+      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+    });
+    nodes.forEach(n => {
+      n.vx = n.vx*0.82*temp + n.vx*(1-temp)*0.95;
+      n.vy = n.vy*0.82*temp + n.vy*(1-temp)*0.95;
+      n.x  = Math.max(n.r+MARGIN, Math.min(W-n.r-MARGIN, n.x+n.vx));
+      n.y  = Math.max(n.r+MARGIN, Math.min(H-n.r-MARGIN, n.y+n.vy));
+    });
+
+    ctx.clearRect(0,0,W,H);
+
+    const pulse = 0.08 + 0.06*Math.sin(frame*0.04);
+    edges.forEach(([ta,tb]) => {
+      const a=nm[ta], b=nm[tb];
+      if(!a||!b) return;
+      const g = ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+      g.addColorStop(0, a.color+"33");
+      g.addColorStop(1, b.color+"33");
+      ctx.beginPath();
+      ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      ctx.strokeStyle=g; ctx.lineWidth=0.8+pulse;
+      ctx.stroke();
+    });
+
+    nodes.forEach(n => {
+      const grd = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*3);
+      grd.addColorStop(0,n.color+"28"); grd.addColorStop(1,"transparent");
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r*3,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=n.color; ctx.fill();
+
+      ctx.font="500 9.5px -apple-system,BlinkMacSystemFont,sans-serif";
+      const tw=ctx.measureText(n.id).width;
+      const lx=(n.x+n.r+5+tw>W-4) ? n.x-n.r-6-tw : n.x+n.r+5;
+      const ly=n.y+3.5;
+      ctx.fillStyle="#000"; ctx.fillText(n.id,lx+0.6,ly+0.6);
+      ctx.fillStyle="#fff"; ctx.fillText(n.id,lx,ly);
+    });
+
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>

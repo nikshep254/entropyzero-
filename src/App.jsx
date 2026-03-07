@@ -656,132 +656,160 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
 
 
 
-// ── Animated Force Canvas — interest web ─────────────────────────────────────
+// ── Animated Force Canvas — interest spider web ──────────────────────────────
 const CANVAS_COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
 
-const ForceCanvas = ({ topics, edges, freq }) => {
+const ForceCanvas = ({ topics, edges, freq, height = 320 }) => {
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
-  const nodesRef  = useRef([]);
+  const stateRef  = useRef({ nodes: [], tick: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || topics.length === 0) return;
-    const ctx = canvas.getContext('2d');
 
-    const W = canvas.offsetWidth  || 480;
-    const H = canvas.offsetHeight || 320;
-    canvas.width  = W * window.devicePixelRatio;
-    canvas.height = H * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    // Wait one frame so offsetWidth is measured after layout
+    const setup = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.offsetWidth  || 480;
+      const H = canvas.offsetHeight || height;
+      canvas.width  = W * dpr;
+      canvas.height = H * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
 
-    // Init nodes with golden-angle starting positions + small random velocity
-    nodesRef.current = topics.map((t, i) => {
-      const a = i * 2.399, r = 55 + (i % 4) * 42 + Math.floor(i / 4) * 12;
-      return {
-        id: t,
-        x:  W/2 + r * Math.cos(a),
-        y:  H/2 + r * Math.sin(a),
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        r:  5 + (freq[t] || 1) * 3,
-        color: CANVAS_COLORS[i % CANVAS_COLORS.length],
-      };
-    });
-    const nodeMap = () => Object.fromEntries(nodesRef.current.map(n => [n.id, n]));
+      // Seed nodes in a tight cluster near center so spring forces spread them naturally
+      stateRef.current.nodes = topics.map((t, i) => {
+        const a = i * 2.399;
+        const r = 30 + (i % 3) * 22 + Math.floor(i / 3) * 10;
+        return {
+          id: t,
+          x:  W/2 + r * Math.cos(a) + (Math.random()-0.5)*8,
+          y:  H/2 + r * Math.sin(a) + (Math.random()-0.5)*8,
+          vx: (Math.random()-0.5)*1.2,
+          vy: (Math.random()-0.5)*1.2,
+          r:  4 + (freq[t]||1) * 2.8,
+          color: CANVAS_COLORS[i % CANVAS_COLORS.length],
+        };
+      });
+      stateRef.current.tick = 0;
 
-    const tick = () => {
-      const nodes = nodesRef.current;
-      const nm = nodeMap();
+      const MARGIN = 14; // keep nodes away from edges
+      let frameCount = 0;
 
-      // repulsion between all pairs
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        // gentle center gravity
-        a.vx += (W/2 - a.x) * 0.0018;
-        a.vy += (H/2 - a.y) * 0.0018;
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const dx = a.x - b.x, dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const f = 1400 / (dist * dist);
-          const fx = (dx / dist) * f, fy = (dy / dist) * f;
+      const tick = () => {
+        frameCount++;
+        const { nodes } = stateRef.current;
+        const nm = {};
+        nodes.forEach(n => { nm[n.id] = n; });
+
+        // Temperature cooling — start lively, settle gently
+        const temp = Math.max(0.12, 1 - frameCount / 320);
+
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++) {
+          const a = nodes[i];
+          // Center gravity (weak)
+          a.vx += (W/2 - a.x) * 0.0012;
+          a.vy += (H/2 - a.y) * 0.0012;
+          for (let j = i+1; j < nodes.length; j++) {
+            const b = nodes[j];
+            const dx = a.x - b.x, dy = a.y - b.y;
+            const dist2 = dx*dx + dy*dy || 0.01;
+            const dist  = Math.sqrt(dist2);
+            const f = Math.min(900, 1600 / dist2);
+            const fx = dx/dist * f, fy = dy/dist * f;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+          }
+        }
+        // Spring edges — rest length scales with canvas
+        const restLen = Math.min(W, H) * 0.28;
+        edges.forEach(([ta, tb]) => {
+          const a = nm[ta], b = nm[tb];
+          if (!a || !b) return;
+          const dx = b.x-a.x, dy = b.y-a.y;
+          const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+          const f = (dist - restLen) * 0.032;
+          const fx = dx/dist*f, fy = dy/dist*f;
           a.vx += fx; a.vy += fy;
           b.vx -= fx; b.vy -= fy;
-        }
-      }
-      // edge spring attraction
-      edges.forEach(([ta, tb]) => {
-        const a = nm[ta], b = nm[tb];
-        if (!a || !b) return;
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const f = (dist - 110) * 0.028;
-        const fx = (dx / dist) * f, fy = (dy / dist) * f;
-        a.vx += fx; a.vy += fy;
-        b.vx -= fx; b.vy -= fy;
-      });
+        });
+        // Integrate + damp + clamp inside canvas
+        nodes.forEach(n => {
+          n.vx = (n.vx * 0.82) * temp + n.vx * (1-temp) * 0.95;
+          n.vy = (n.vy * 0.82) * temp + n.vy * (1-temp) * 0.95;
+          n.x = Math.max(n.r+MARGIN, Math.min(W-n.r-MARGIN, n.x + n.vx));
+          n.y = Math.max(n.r+MARGIN, Math.min(H-n.r-MARGIN, n.y + n.vy));
+        });
 
-      // integrate, damp, clamp
-      nodes.forEach(n => {
-        n.vx *= 0.86; n.vy *= 0.86;
-        n.x = Math.max(n.r + 6, Math.min(W - n.r - 70, n.x + n.vx));
-        n.y = Math.max(n.r + 6, Math.min(H - n.r - 6,  n.y + n.vy));
-      });
+        // ── DRAW ──
+        ctx.clearRect(0, 0, W, H);
 
-      // ── draw ──
-      ctx.clearRect(0, 0, W, H);
+        // Spider-web edges — with faint animated glow pulse
+        const pulse = 0.08 + 0.06 * Math.sin(frameCount * 0.04);
+        edges.forEach(([ta, tb]) => {
+          const a = nm[ta], b = nm[tb];
+          if (!a || !b) return;
+          // gradient along edge in node colors
+          const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+          grad.addColorStop(0, a.color + '33');
+          grad.addColorStop(1, b.color + '33');
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 0.8 + pulse;
+          ctx.stroke();
+        });
 
-      // edges
-      edges.forEach(([ta, tb]) => {
-        const a = nm[ta], b = nm[tb];
-        if (!a || !b) return;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = 'rgba(255,255,255,0.13)';
-        ctx.lineWidth = 0.9;
-        ctx.stroke();
-      });
+        // Nodes
+        nodes.forEach(n => {
+          // outer glow
+          const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 2.8);
+          grd.addColorStop(0, n.color + '30');
+          grd.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * 2.8, 0, Math.PI*2);
+          ctx.fillStyle = grd;
+          ctx.fill();
 
-      // nodes + labels
-      nodes.forEach(n => {
-        // soft glow halo
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r + 14);
-        g.addColorStop(0,   n.color + '28');
-        g.addColorStop(1,   'transparent');
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r + 14, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        ctx.fill();
+          // filled circle
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+          ctx.fillStyle = n.color;
+          ctx.fill();
 
-        // filled node
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = n.color;
-        ctx.fill();
+          // label — always inside canvas: flip to left if near right edge
+          const label = n.id;
+          ctx.font = '500 9.5px -apple-system,BlinkMacSystemFont,sans-serif';
+          const tw = ctx.measureText(label).width;
+          const lx = (n.x + n.r + 5 + tw > W - 4)
+            ? n.x - n.r - 6 - tw   // flip left
+            : n.x + n.r + 5;
+          const ly = n.y + 3.5;
+          ctx.fillStyle = '#000';
+          ctx.fillText(label, lx+0.5, ly+0.5);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(label, lx, ly);
+        });
 
-        // label
-        ctx.font = '500 10px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 4;
-        ctx.fillText(n.id, n.x + n.r + 5, n.y + 3.5);
-        ctx.shadowBlur = 0;
-      });
+        animRef.current = requestAnimationFrame(tick);
+      };
 
+      cancelAnimationFrame(animRef.current);
       animRef.current = requestAnimationFrame(tick);
     };
 
-    animRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animRef.current);
+    const raf = requestAnimationFrame(setup);
+    return () => { cancelAnimationFrame(raf); cancelAnimationFrame(animRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topics.join(','), edges.map(e => e.join()).join()]);
+  }, [topics.join('|'), edges.length, height]);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: '100%', height: '320px', display: 'block', borderRadius: '16px', background: '#050505' }}
+      style={{ width:'100%', height:`${height}px`, display:'block', background:'#050505' }}
     />
   );
 };
@@ -902,6 +930,7 @@ const TABS = [
   { id: "habits",    icon: <Flame size={16} />,     label: "Habits" },
   { id: "assets",    icon: <Star size={16} />,      label: "Assets" },
   { id: "interests", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>, label: "Interests" },
+  { id: "goals",     icon: <Target size={16} />,    label: "Goals" },
   { id: "phases",    icon: <BookOpen size={16} />,  label: "Phases" },
   { id: "more",      icon: <Layers size={16} />,    label: "More" },
   { id: "changelog", icon: <GitMerge size={16} />,  label: "Updates" },
@@ -947,8 +976,10 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [widgetEnabled, setWidgetEnabled] = useState(false);
   const [widgetLoading, setWidgetLoading] = useState(false);
   const [widgetCopied, setWidgetCopied]   = useState("");
-  const [widgetSyncStatus, setWidgetSyncStatus] = useState(null); // null|'ok'|'error'
+  const [widgetSyncStatus, setWidgetSyncStatus] = useState(null);
   const [widgetSyncMsg, setWidgetSyncMsg]       = useState("");
+  const [interestEnabled, setInterestEnabled]   = useState(false);
+  const [interestCopied, setInterestCopied]     = useState("");
   const [saving, setSaving]               = useState(false);
   const [lastSaved, setLastSaved]         = useState(null);
 
@@ -958,6 +989,17 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     setSaving(true);
     const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
     const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests });
+    const topicsForWidget = [...new Set((interests||[]).flatMap(i => i.topics))];
+    const edgesForWidget = (() => {
+      const es = new Set(), arr = [];
+      (interests||[]).forEach(it => {
+        for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
+          const k = [it.topics[a],it.topics[b]].sort().join("|||");
+          if (!es.has(k)) { es.add(k); arr.push([it.topics[a],it.topics[b]]); }
+        }
+      });
+      return arr;
+    })();
     const saveWidget = widgetEnabled
       ? publishPublicWidget(uid, {
           name: config.name,
@@ -968,8 +1010,11 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
           allTime: allTimeVal,
           streak,
           chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
+          ...(interestEnabled ? { interestTopics: topicsForWidget, interestEdges: edgesForWidget, interestName: config.name } : {}),
         })
-      : Promise.resolve();
+      : interestEnabled
+        ? publishPublicWidget(uid, { interestTopics: topicsForWidget, interestEdges: edgesForWidget, interestName: config.name, name: config.name })
+        : Promise.resolve();
     Promise.all([saveAll, saveWidget])
       .then(() => {
         setLastSaved(new Date()); setSaving(false);
@@ -979,7 +1024,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
         console.error("Save error:", e); setSaving(false);
         if (widgetEnabled) { setWidgetSyncStatus('error'); setWidgetSyncMsg(e?.message || "Unknown error"); }
       });
-  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled]);
+  }, [uid, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled, interestEnabled]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -1256,6 +1301,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
   useEffect(() => {
     if (!uid) return;
     getWidgetEnabled(uid).then(setWidgetEnabled);
+    getDoc(doc(db, "public", uid)).then(snap => { if (snap.exists() && snap.data().interestTopics) setInterestEnabled(true); }).catch(()=>{});
   }, [uid]);
 
   // Auto-generate weekly summary on mount if due (once only)
@@ -1901,7 +1947,205 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
             );
           })()}
 
+          {/* ── Interest Bento Embed ── */}
+          {interests.length > 1 && (
+            <Card>
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-1">
+                <span className="text-base">🌐</span> Share Interest Web
+              </h2>
+              <p className="text-xs text-[#888] mb-4 leading-relaxed">
+                Make your interest network publicly embeddable — share it as a live bento card on any website.
+              </p>
+
+              {/* Toggle */}
+              <div className="flex items-center justify-between bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 mb-3">
+                <div>
+                  <p className="text-sm text-[#f0f0f0] font-medium">Enable public interest web</p>
+                  <p className="text-xs text-[#888] mt-0.5">{interestEnabled ? "Your interest map is publicly viewable" : "Private"}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const topicsNow = [...new Set(interests.flatMap(i => i.topics))];
+                      const edgesNow = (() => {
+                        const es = new Set(), arr = [];
+                        interests.forEach(it => {
+                          for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
+                            const k = [it.topics[a],it.topics[b]].sort().join("|||");
+                            if (!es.has(k)) { es.add(k); arr.push([it.topics[a],it.topics[b]]); }
+                          }
+                        });
+                        return arr;
+                      })();
+                      if (!interestEnabled) {
+                        await setDoc(doc(db, "public", uid), { interestTopics: topicsNow, interestEdges: edgesNow, interestName: config.name, lastUpdated: Date.now() }, { merge: true });
+                        setInterestEnabled(true);
+                      } else {
+                        // Remove interest fields only — keep chart widget if present
+                        const snap = await getDoc(doc(db, "public", uid));
+                        if (snap.exists()) {
+                          const d = snap.data();
+                          delete d.interestTopics; delete d.interestEdges; delete d.interestName;
+                          await setDoc(doc(db, "public", uid), d);
+                        }
+                        setInterestEnabled(false);
+                      }
+                    } catch(e) { alert("Error: " + e.message); }
+                  }}
+                  className={`relative w-12 h-6 rounded-full transition-all duration-300 ${interestEnabled ? "bg-violet-600" : "bg-[#222]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${interestEnabled ? "translate-x-6" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              {interestEnabled && (
+                <div className="space-y-3">
+                  {[
+                    {
+                      label: "iframe embed",
+                      desc: "Paste into any website, Notion, GitHub profile",
+                      code: `<iframe src="https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}" width="480" height="360" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#050505"></iframe>`,
+                    },
+                    {
+                      label: "Canvas URL",
+                      desc: "Direct link to share or open",
+                      code: `https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}`,
+                    },
+                  ].map(({ label, desc, code }) => (
+                    <div key={label} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-[#bbb]">{label}</p>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(code); setInterestCopied(label); setTimeout(()=>setInterestCopied(""),2000); }}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-[#999] hover:text-white hover:border-[#444] transition-all"
+                        >{interestCopied === label ? "✓ Copied!" : "Copy"}</button>
+                      </div>
+                      <p className="text-[10px] text-[#777] mb-2">{desc}</p>
+                      <code className="text-[9px] text-[#777] break-all leading-relaxed block font-mono">{code}</code>
+                    </div>
+                  ))}
+                  <a
+                    href={`https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full text-xs text-[#888] border border-[#2a2a2a] rounded-xl py-2 hover:text-white hover:border-[#444] transition-all"
+                  >↗ Open live preview</a>
+                </div>
+              )}
+            </Card>
+          )}
+
         </>)}
+
+        {/* GOALS — Pending IPOs */}
+        {view === "goals" && (() => {
+          const pending  = goals.filter(g => !g.achieved);
+          const listed   = goals.filter(g =>  g.achieved);
+          const SECTOR_COLORS = { health:"#22c55e", academics:"#60a5fa", social:"#f472b6", mental:"#a78bfa", skills:"#facc15" };
+          return (
+            <>
+              {/* Hero banner */}
+              <div className="relative overflow-hidden rounded-2xl mb-4" style={{background:"linear-gradient(135deg,#0a0015 0%,#0f0020 50%,#000d20 100%)"}}>
+                <div className="absolute inset-0 opacity-40" style={{backgroundImage:"radial-gradient(circle at 15% 50%, #7c3aed44 0%, transparent 55%), radial-gradient(circle at 85% 30%, #0ea5e940 0%, transparent 55%)"}} />
+                <div className="relative px-5 py-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target size={13} className="text-violet-400" />
+                    <span className="text-[10px] font-mono text-[#555] uppercase tracking-widest">Pending IPOs</span>
+                  </div>
+                  <h1 className="text-xl font-bold text-white leading-tight mb-1">Goals & Milestones</h1>
+                  <p className="text-xs text-[#555]">{pending.length} pending · {listed.length} listed · {goals.reduce((s,g)=>s+(g.achieved?g.reward:0),0).toFixed(1)}% earned</p>
+                </div>
+              </div>
+
+              {/* Pending goals — pre-IPO companies */}
+              {pending.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] text-[#777] font-mono uppercase tracking-widest mb-3 px-1">🔒 Pre-IPO · Pending</p>
+                  <div className="space-y-2">
+                    {pending.map(g => {
+                      const sc = SECTORS.find(s => s.id === g.sector);
+                      const col = SECTOR_COLORS[g.sector] || "#888";
+                      const tk = g.title.replace(/[^a-zA-Z]/g,"").slice(0,4).toUpperCase() || "GOAL";
+                      return (
+                        <div key={g.id} className="bg-[#111] border border-[#2a2a2a] rounded-2xl p-4 flex items-center gap-4">
+                          {/* ticker block */}
+                          <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center border" style={{borderColor:col+"33", background:col+"11"}}>
+                            <span className="text-[9px] font-bold font-mono" style={{color:col}}>${tk}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{g.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-[#888]">{sc?.emoji} {sc?.label}</span>
+                              <span className="text-[10px] font-mono text-green-500">+{g.reward}% on IPO</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5 items-end">
+                            <button
+                              onClick={() => { setGoals(p => p.map(x => x.id === g.id ? { ...x, achieved: true } : x)); execute(`🏆 IPO:${g.title}`, g.reward, "goal"); }}
+                              className="text-[10px] bg-violet-950/30 border border-violet-800/40 text-violet-400 hover:bg-violet-900/30 hover:text-violet-300 px-3 py-1.5 rounded-lg font-semibold transition-all"
+                            >🚀 List</button>
+                            <button onClick={() => setGoals(p => p.filter(x => x.id !== g.id))} className="text-[#444] hover:text-red-500"><X size={12} /></button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {pending.length === 0 && (
+                <div className="text-center py-8 text-[#444] text-sm">No pending goals — add one below 🚀</div>
+              )}
+
+              {/* Listed / achieved */}
+              {listed.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] text-[#777] font-mono uppercase tracking-widest mb-3 px-1">✅ Listed · Achieved</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {listed.map(g => {
+                      const col = SECTOR_COLORS[g.sector] || "#888";
+                      const tk = g.title.replace(/[^a-zA-Z]/g,"").slice(0,4).toUpperCase() || "GOAL";
+                      return (
+                        <div key={g.id} className="bg-green-950/10 border border-green-900/20 rounded-2xl p-3 flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-bold font-mono text-green-600">${tk}</span>
+                            <button onClick={() => setGoals(p => p.filter(x => x.id !== g.id))} className="text-[#333] hover:text-red-500"><X size={10} /></button>
+                          </div>
+                          <p className="text-xs font-medium text-[#f0f0f0] leading-snug">{g.title}</p>
+                          <p className="text-[9px] text-green-700 font-mono">+{g.reward}% earned ✓</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Add new goal */}
+              <Card>
+                <h3 className="font-semibold text-white text-sm mb-4 flex items-center gap-2"><Plus size={14} />File for IPO</h3>
+                <div className="space-y-3">
+                  <Input value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} placeholder="Goal title (company name)" className="w-full" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={newGoal.sector}
+                      onChange={e => setNewGoal(p => ({ ...p, sector: e.target.value }))}
+                      className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm text-[#f0f0f0] focus:outline-none focus:border-[#444]"
+                    >
+                      {SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
+                    </select>
+                    <div className="relative">
+                      <Input type="number" value={newGoal.reward} onChange={e => setNewGoal(p => ({ ...p, reward: parseFloat(e.target.value) || 0 }))} placeholder="% reward" className="w-full font-mono" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#555]">%</span>
+                    </div>
+                  </div>
+                  <Btn onClick={() => { if (!newGoal.title.trim()) return; setGoals(p => [...p, { ...newGoal, id: genId(), achieved: false }]); setNewGoal({ title: "", sector: "academics", reward: 0 }); }} className="w-full">
+                    <Target size={14} />File for IPO
+                  </Btn>
+                </div>
+              </Card>
+            </>
+          );
+        })()}
 
         {view === "phases" && (<>
           <div className="flex items-center gap-2 mb-1"><p className="text-xs text-[#888]">Life phases shape your historical chart curve.</p><InfoTooltip feature="phases" /></div>
@@ -2298,16 +2542,12 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     </div>
                   ))}
 
-                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3">
-                    <p className="text-xs font-semibold text-[#bbb] mb-2">Preview</p>
-                    <iframe
-                      src={`https://entropyzero.vercel.app/widget.html?uid=${uid}`}
-                      width="100%"
-                      height="280"
-                      frameBorder="0"
-                      style={{ borderRadius: "12px", border: "1px solid #252525", background: "#0d0d0d" }}
-                    />
-                  </div>
+                  <a
+                    href={`https://entropyzero.vercel.app/widget.html?uid=${uid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full text-xs text-[#888] border border-[#2a2a2a] rounded-xl py-2.5 hover:text-white hover:border-[#444] transition-all"
+                  >↗ Open live widget preview</a>
 
                   <p className="text-[10px] text-[#777] leading-relaxed">
                     ⚠️ Widget data updates every time you save. Toggle off to remove public access instantly.

@@ -184,13 +184,13 @@ const InfoTooltip = ({ feature }) => {
   return (
     <div className="relative inline-flex" ref={ref}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-4 h-4 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-[#666] hover:text-[#aaa] hover:border-[#444] flex items-center justify-center transition-all flex-shrink-0">
+        className="w-4 h-4 rounded-full bg-[#111] border border-[#2a2a2a] text-[#888] hover:text-[#bbb] hover:border-[#444] flex items-center justify-center transition-all flex-shrink-0">
         <Info size={9} />
       </button>
       {open && (
-        <div className="absolute z-50 left-6 top-0 w-64 bg-[#202020] border border-[#2a2a2a] rounded-xl p-3 shadow-2xl">
-          <p className="text-xs font-semibold text-[#ddd] mb-1">{info.title}</p>
-          <p className="text-[11px] text-[#777] leading-relaxed">{info.body}</p>
+        <div className="absolute z-50 left-6 top-0 w-64 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-3 shadow-2xl">
+          <p className="text-xs font-semibold text-[#f0f0f0] mb-1">{info.title}</p>
+          <p className="text-[11px] text-[#999] leading-relaxed">{info.body}</p>
         </div>
       )}
     </div>
@@ -278,52 +278,52 @@ const BuilderCard = () => (
 );
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const C = { bg: "bg-[#0d0d0d]", card: "bg-[#1a1a1a]", border: "border-[#2a2a2a]", input: "bg-[#141414] border-[#2a2a2a]" };
+const C = { bg: "bg-[#080808]", card: "bg-[#111]", border: "border-[#2a2a2a]", input: "bg-[#080808] border-[#2a2a2a]" };
 const Card = ({ children, className = "" }) => <div className={`${C.card} border ${C.border} rounded-2xl p-5 ${className}`}>{children}</div>;
-const Input = ({ className = "", ...p }) => <input className={`${C.input} border rounded-xl px-4 py-2.5 text-[#e8e8e8] placeholder-[#333] focus:outline-none focus:border-[#333] text-sm transition-all ${className}`} {...p} />;
-const Textarea = ({ className = "", ...p }) => <textarea className={`${C.input} border rounded-xl px-4 py-2.5 text-[#e8e8e8] placeholder-[#333] focus:outline-none focus:border-[#333] text-sm resize-none transition-all ${className}`} {...p} />;
+const Input = ({ className = "", ...p }) => <input className={`${C.input} border rounded-xl px-4 py-2.5 text-white placeholder-[#555] focus:outline-none focus:border-[#333] text-sm transition-all ${className}`} {...p} />;
+const Textarea = ({ className = "", ...p }) => <textarea className={`${C.input} border rounded-xl px-4 py-2.5 text-white placeholder-[#555] focus:outline-none focus:border-[#333] text-sm resize-none transition-all ${className}`} {...p} />;
 const Btn = ({ children, variant = "primary", className = "", ...p }) => {
-  const v = { primary: "bg-[#e8e8e8] text-[#080808] hover:bg-[#d0d0d0]", ghost: "bg-[#202020] border border-[#2e2e2e] text-[#aaa] hover:bg-[#1a1a1a] hover:text-[#e8e8e8]", danger: "bg-[#1a0808] border border-[#3a1010] text-[#f87171] hover:bg-[#200a0a]", success: "bg-[#0a1a12] border border-[#1a4d2e] text-[#34d399] hover:bg-[#0d2018]" };
+  const v = { primary: "bg-[#e8e8e8] text-[#080808] hover:bg-[#d0d0d0]", ghost: "bg-[#1a1a1a] border border-[#333] text-[#bbb] hover:bg-[#111] hover:text-white", danger: "bg-[#1a0808] border border-[#3a1010] text-[#f87171] hover:bg-[#200a0a]", success: "bg-[#0a1a12] border border-[#1a4d2e] text-[#34d399] hover:bg-[#0d2018]" };
   return <button className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${v[variant]} ${className}`} {...p}>{children}</button>;
 };
 
 const StatCard = ({ label, value, sub, colorClass, feature }) => (
   <div className={`${C.card} border ${C.border} rounded-2xl p-3 text-center`}>
     <div className="flex items-center justify-center gap-1 mb-1">
-      <p className="text-[10px] text-[#777]">{label}</p>
+      <p className="text-[10px] text-[#999]">{label}</p>
       <InfoTooltip feature={feature} />
     </div>
-    <p className={`text-sm font-semibold font-mono ${colorClass || "text-[#ddd]"}`}>{value}</p>
+    <p className={`text-sm font-semibold font-mono ${colorClass || "text-[#f0f0f0]"}`}>{value}</p>
     {sub && <p className="text-[10px] text-[#4a4a4a] mt-0.5">{sub}</p>}
   </div>
 );
 
 // ── Welcome ───────────────────────────────────────────────────────────────────
 const WelcomeScreen = ({ onContinue, onGoogleLogin, loginLoading }) => (
-  <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center p-6">
+  <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center p-6">
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-[#1e1e1e] border border-[#2e2e2e] rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl">📈</div>
-        <h1 className="text-3xl font-semibold text-[#e8e8e8] tracking-tight">entropyzero</h1>
+        <div className="w-16 h-16 bg-[#161616] border border-[#333] rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl">📈</div>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">entropyzero</h1>
         <p className="text-[#888] text-sm mt-2">Your life, quantified.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 mb-4">
         {[["📊","Life as a Stock","Track habits, events, mood. Watch your index grow.","col-span-2"],["🧠","AI Coach","Personalised daily insights.",""],["💎","Skills & Debt","Assets vs weaknesses.",""],["🗂️","Life Phases","Map your chapters.",""],["📰","Daily Reports","AI press releases.",""]].map(([e,t,d,cs])=>(
-          <div key={t} className={`bg-[#181818] border border-[#2e2e2e] rounded-2xl p-4 ${cs}`}>
+          <div key={t} className={`bg-[#141414] border border-[#333] rounded-2xl p-4 ${cs}`}>
             <p className="text-2xl mb-2">{e}</p>
             <p className="text-[#e0e0e0] text-sm font-medium">{t}</p>
-            <p className="text-[#777] text-xs mt-1 leading-relaxed">{d}</p>
+            <p className="text-[#999] text-xs mt-1 leading-relaxed">{d}</p>
           </div>
         ))}
         {/* Google Login Bento */}
-        <div className="col-span-2 bg-[#181818] border border-[#2e2e2e] rounded-2xl p-5">
+        <div className="col-span-2 bg-[#141414] border border-[#333] rounded-2xl p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-[#242424] flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#1e1e1e] flex items-center justify-center flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             </div>
             <div>
               <p className="text-[#e0e0e0] text-sm font-semibold">Sign in with Google</p>
-              <p className="text-[#777] text-xs mt-0.5">Syncs your data across every device, forever.</p>
+              <p className="text-[#999] text-xs mt-0.5">Syncs your data across every device, forever.</p>
             </div>
           </div>
           <div className="space-y-2 mb-4">
@@ -332,16 +332,16 @@ const WelcomeScreen = ({ onContinue, onGoogleLogin, loginLoading }) => (
               ["☁️","Why it's needed","Without login, your data lives only in this tab and vanishes when you close it. Google login saves everything — habits, index, coach history — to encrypted cloud storage."],
               ["📱","Any device","Log on your phone, check on your laptop. Always in sync."],
             ].map(([icon,title,desc])=>(
-              <div key={title} className="flex gap-3 bg-[#141414] rounded-xl px-3 py-2.5 border border-[#252525]">
+              <div key={title} className="flex gap-3 bg-[#0a0a0a] rounded-xl px-3 py-2.5 border border-[#2a2a2a]">
                 <span className="text-base mt-0.5 flex-shrink-0">{icon}</span>
-                <div><p className="text-xs font-semibold text-[#ccc]">{title}</p><p className="text-[10px] text-[#777] mt-0.5 leading-relaxed">{desc}</p></div>
+                <div><p className="text-xs font-semibold text-[#ccc]">{title}</p><p className="text-[10px] text-[#999] mt-0.5 leading-relaxed">{desc}</p></div>
               </div>
             ))}
           </div>
           <button onClick={onGoogleLogin} disabled={loginLoading} className="w-full flex items-center justify-center gap-3 bg-[#e8e8e8] hover:bg-[#d8d8d8] text-[#0d0d0d] rounded-xl py-3.5 font-semibold text-sm transition-all disabled:opacity-50 mb-3">
             {loginLoading ? "Signing in…" : <><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Continue with Google</>}
           </button>
-          <button onClick={onContinue} className="w-full text-xs text-[#666] hover:text-[#999] py-1.5 transition-all">Skip for now (data won't be saved) →</button>
+          <button onClick={onContinue} className="w-full text-xs text-[#888] hover:text-[#aaa] py-1.5 transition-all">Skip for now (data won't be saved) →</button>
         </div>
       </div>
     </div>
@@ -358,10 +358,10 @@ const Shell = ({ step, children, onNext, onBack, nextLabel = "Continue", nextDis
       <div className="flex items-center justify-center gap-1.5 mb-10">
         {STEPS.map((_, i) => (
           <div key={i} className="flex items-center">
-            <div className={`rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${i < step ? "w-5 h-5 bg-[#e8e8e8] text-[#080808]" : i === step ? "w-6 h-6 border border-[#555] text-[#aaa]" : "w-4 h-4 border border-[#333] text-[#777]"}`}>
+            <div className={`rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${i < step ? "w-5 h-5 bg-[#e8e8e8] text-[#080808]" : i === step ? "w-6 h-6 border border-[#555] text-[#bbb]" : "w-4 h-4 border border-[#333] text-[#999]"}`}>
               {i < step ? <Check size={10} /> : i + 1}
             </div>
-            {i < STEPS.length - 1 && <div className={`w-4 h-px mx-1 ${i < step ? "bg-[#555]" : "bg-[#1e1e1e]"}`} />}
+            {i < STEPS.length - 1 && <div className={`w-4 h-px mx-1 ${i < step ? "bg-[#555]" : "bg-[#161616]"}`} />}
           </div>
         ))}
       </div>
@@ -380,9 +380,9 @@ const Shell = ({ step, children, onNext, onBack, nextLabel = "Continue", nextDis
 const PhaseForm = ({ onAdd }) => {
   const [d, setD] = useState({ name: "", start: "", end: "", trend: 0, emoji: "📅", color: "#a3a3a3", desc: "" });
   return (
-    <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 space-y-2.5">
+    <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4 space-y-2.5">
       <div className="flex gap-2">
-        <select value={d.emoji} onChange={e => setD(p => ({ ...p, emoji: e.target.value }))} className="bg-[#181818] border border-[#2e2e2e] rounded-lg px-2 py-2 text-base focus:outline-none">{EMOJIS.map(em => <option key={em}>{em}</option>)}</select>
+        <select value={d.emoji} onChange={e => setD(p => ({ ...p, emoji: e.target.value }))} className="bg-[#141414] border border-[#333] rounded-lg px-2 py-2 text-base focus:outline-none">{EMOJIS.map(em => <option key={em}>{em}</option>)}</select>
         <Input value={d.name} onChange={e => setD(p => ({ ...p, name: e.target.value }))} placeholder="Phase name" className="flex-1" />
       </div>
       <Textarea value={d.desc} onChange={e => setD(p => ({ ...p, desc: e.target.value }))} placeholder="Describe this phase…" className="w-full h-14" />
@@ -392,7 +392,7 @@ const PhaseForm = ({ onAdd }) => {
       </div>
       <div className="grid gap-1">
         {TREND_OPTIONS.map(t => (
-          <button key={t.value} onClick={() => setD(p => ({ ...p, trend: t.value }))} className={`px-3 py-2 rounded-lg text-xs border text-left transition-all ${d.trend === t.value ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#141414] text-[#777] border-[#2a2a2a] hover:border-[#333]"}`}>{t.label}</button>
+          <button key={t.value} onClick={() => setD(p => ({ ...p, trend: t.value }))} className={`px-3 py-2 rounded-lg text-xs border text-left transition-all ${d.trend === t.value ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#0a0a0a] text-[#999] border-[#2a2a2a] hover:border-[#333]"}`}>{t.label}</button>
         ))}
       </div>
       <div className="flex gap-2">{COLORS.map(c => <button key={c} onClick={() => setD(p => ({ ...p, color: c }))} className={`w-5 h-5 rounded-full border-2 transition-all ${d.color === c ? "border-[#e8e8e8] scale-110" : "border-transparent opacity-50"}`} style={{ backgroundColor: c }} />)}</div>
@@ -412,54 +412,54 @@ const Onboarding = ({ onComplete }) => {
   const finish = () => onComplete({ ...prof, ticker: prof.ticker || prof.name.slice(0, 4).toUpperCase(), ...loc, ...price, ...story, ...hab });
   const DEFS = [{ name: "Morning Exercise", impact: 2, type: "positive", emoji: "🏃", sector: "health" }, { name: "Study Session", impact: 3, type: "positive", emoji: "📚", sector: "academics" }, { name: "Meditation", impact: 1.5, type: "positive", emoji: "🧘", sector: "mental" }, { name: "Junk Food", impact: -2.5, type: "negative", emoji: "🍔", sector: "health" }, { name: "Good Sleep", impact: 1, type: "positive", emoji: "😴", sector: "health" }];
 
-  if (step === 0) return (<Shell step={0} onNext={n} nextLabel="Begin"><div className="text-center"><div className="w-12 h-12 bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl flex items-center justify-center mx-auto mb-4 text-2xl">📈</div><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Set Up Your Index</h2><p className="text-[#666] text-sm mb-6">Takes about 2 minutes.</p><div className="grid grid-cols-3 gap-3">{[["📊", "Chart"], ["🧠", "Coach"], ["💎", "Assets"]].map(([e, l]) => <div key={l} className="bg-[#181818] border border-[#2e2e2e] rounded-xl p-4"><div className="text-2xl mb-2">{e}</div><div className="text-xs text-[#666]">{l}</div></div>)}</div></div></Shell>);
-  if (step === 1) return (<Shell step={1} onNext={n} onBack={b} nextDisabled={!prof.name.trim() || !prof.dob}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">Your Profile</h2><div className="space-y-4">{[["Full Name", "text", "e.g. Alex Johnson", "name"], ["Ticker (optional)", "text", "AUTO", "ticker"]].map(([l, t, p, k]) => <div key={k}><label className="text-xs text-[#666] uppercase tracking-wider block mb-2">{l}</label><Input type={t} placeholder={p} value={prof[k]} onChange={e => setProf(x => ({ ...x, [k]: k === "ticker" ? e.target.value.toUpperCase() : e.target.value }))} className="w-full" /></div>)}<div><label className="text-xs text-[#666] uppercase tracking-wider block mb-2">Date of Birth</label><Input type="date" max={today()} min="1950-01-01" value={prof.dob} onChange={e => setProf(x => ({ ...x, dob: e.target.value }))} className="w-full" /></div></div></Shell>);
-  if (step === 2) return (<Shell step={2} onNext={n} onBack={b} nextDisabled={!loc.country}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">Country & Currency</h2><div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">{Object.keys(CURRENCIES).map(c => <button key={c} onClick={() => setLoc({ country: c })} className={`py-3 px-4 rounded-xl text-sm text-left border transition-all ${loc.country === c ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333] hover:text-[#bbb]"}`}><span className="block font-medium">{c}</span><span className={`text-xs font-mono ${loc.country === c ? "text-[#080808]/50" : "text-[#777]"}`}>{CURRENCIES[c]?.code}</span></button>)}</div></Shell>);
-  if (step === 3) return (<Shell step={3} onNext={n} onBack={b} nextDisabled={!price.startPrice || price.startPrice <= 0}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-5">IPO Price</h2><div className="grid grid-cols-4 gap-2 mb-4">{[100, 250, 500, 1000].map(p => <button key={p} onClick={() => setPrice({ startPrice: p })} className={`py-3 rounded-xl text-sm font-semibold border transition-all ${price.startPrice === p ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{p}</button>)}</div><Input type="number" min={1} placeholder="Custom value" value={price.startPrice || ""} onChange={e => setPrice({ startPrice: parseFloat(e.target.value) })} className="w-full" /></Shell>);
-  if (step === 4) return (<Shell step={4} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Life Story</h2><p className="text-[#666] text-xs mb-4">Each phase shapes your chart curve.</p><div className="space-y-2 max-h-40 overflow-y-auto mb-4">{story.phases.map(ph => <div key={ph.id} className="flex items-center gap-3 bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-2.5"><span>{ph.emoji}</span><div className="flex-1"><p className="text-sm text-[#ddd]">{ph.name}</p><p className="text-xs text-[#666]">{ph.start}→{ph.end || "now"}</p></div><button onClick={() => setStory(s => ({ ...s, phases: s.phases.filter(p => p.id !== ph.id) }))} className="text-[#777] hover:text-red-400"><X size={13} /></button></div>)}</div><PhaseForm onAdd={ph => setStory(s => ({ ...s, phases: [...s.phases, ph] }))} /></Shell>);
-  if (step === 5) return (<Shell step={5} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-[#e8e8e8] mb-1">Habits</h2><p className="text-[#666] text-xs mb-4">These move your index daily.</p><div className="flex flex-wrap gap-2 mb-4">{DEFS.map(h => <button key={h.name} onClick={() => { if (!hab.habits.find(x => x.name === h.name)) setHab(d => ({ ...d, habits: [...d.habits, { ...h, id: genId() }] })); }} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${hab.habits.find(x => x.name === h.name) ? "border-[#555] text-[#ddd] bg-[#1a1a1a]" : "border-[#2e2e2e] text-[#666] hover:border-[#333] hover:text-[#aaa]"}`}>{h.emoji}{h.name}</button>)}</div><div className="space-y-1.5 max-h-32 overflow-y-auto mb-4">{hab.habits.map(h => <div key={h.id} className="flex items-center justify-between bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-2"><span className="text-sm text-[#ddd]">{h.emoji}{h.name}</span><div className="flex items-center gap-2"><span className={`text-xs font-mono ${h.impact >= 0 ? "text-green-400" : "text-red-400"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span><button onClick={() => setHab(d => ({ ...d, habits: d.habits.filter(x => x.id !== h.id) }))} className="text-[#777] hover:text-red-400"><X size={12} /></button></div></div>)}</div></Shell>);
-  if (step === 6) return (<Shell step={6} onNext={n} onBack={b} nextLabel="Next →"><h2 className="text-xl font-semibold text-[#e8e8e8] mb-4">Ready to Launch</h2>{[["👤 Name", prof.name], ["📈 Ticker", `$${prof.ticker || prof.name.slice(0, 4).toUpperCase()}`], ["🌍 Country", `${loc.country} · ${CURRENCIES[loc.country]?.code}`], ["💰 IPO", `${CURRENCIES[loc.country]?.symbol}${price.startPrice}`], ["🗂️ Phases", `${story.phases.length} phases`], ["✅ Habits", `${hab.habits.length} habits`]].map(([k, v]) => <div key={k} className="flex justify-between items-center bg-[#181818] border border-[#2e2e2e] rounded-xl px-4 py-3 mb-2"><span className="text-sm text-[#777]">{k}</span><span className="text-sm text-[#ddd]">{v}</span></div>)}</Shell>);
+  if (step === 0) return (<Shell step={0} onNext={n} nextLabel="Begin"><div className="text-center"><div className="w-12 h-12 bg-[#161616] border border-[#333] rounded-xl flex items-center justify-center mx-auto mb-4 text-2xl">📈</div><h2 className="text-xl font-semibold text-white mb-1">Set Up Your Index</h2><p className="text-[#888] text-sm mb-6">Takes about 2 minutes.</p><div className="grid grid-cols-3 gap-3">{[["📊", "Chart"], ["🧠", "Coach"], ["💎", "Assets"]].map(([e, l]) => <div key={l} className="bg-[#141414] border border-[#333] rounded-xl p-4"><div className="text-2xl mb-2">{e}</div><div className="text-xs text-[#888]">{l}</div></div>)}</div></div></Shell>);
+  if (step === 1) return (<Shell step={1} onNext={n} onBack={b} nextDisabled={!prof.name.trim() || !prof.dob}><h2 className="text-xl font-semibold text-white mb-5">Your Profile</h2><div className="space-y-4">{[["Full Name", "text", "e.g. Alex Johnson", "name"], ["Ticker (optional)", "text", "AUTO", "ticker"]].map(([l, t, p, k]) => <div key={k}><label className="text-xs text-[#888] uppercase tracking-wider block mb-2">{l}</label><Input type={t} placeholder={p} value={prof[k]} onChange={e => setProf(x => ({ ...x, [k]: k === "ticker" ? e.target.value.toUpperCase() : e.target.value }))} className="w-full" /></div>)}<div><label className="text-xs text-[#888] uppercase tracking-wider block mb-2">Date of Birth</label><Input type="date" max={today()} min="1950-01-01" value={prof.dob} onChange={e => setProf(x => ({ ...x, dob: e.target.value }))} className="w-full" /></div></div></Shell>);
+  if (step === 2) return (<Shell step={2} onNext={n} onBack={b} nextDisabled={!loc.country}><h2 className="text-xl font-semibold text-white mb-5">Country & Currency</h2><div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">{Object.keys(CURRENCIES).map(c => <button key={c} onClick={() => setLoc({ country: c })} className={`py-3 px-4 rounded-xl text-sm text-left border transition-all ${loc.country === c ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#141414] text-[#888] border-[#333] hover:border-[#333] hover:text-[#bbb]"}`}><span className="block font-medium">{c}</span><span className={`text-xs font-mono ${loc.country === c ? "text-[#080808]/50" : "text-[#999]"}`}>{CURRENCIES[c]?.code}</span></button>)}</div></Shell>);
+  if (step === 3) return (<Shell step={3} onNext={n} onBack={b} nextDisabled={!price.startPrice || price.startPrice <= 0}><h2 className="text-xl font-semibold text-white mb-5">IPO Price</h2><div className="grid grid-cols-4 gap-2 mb-4">{[100, 250, 500, 1000].map(p => <button key={p} onClick={() => setPrice({ startPrice: p })} className={`py-3 rounded-xl text-sm font-semibold border transition-all ${price.startPrice === p ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#141414] text-[#888] border-[#333] hover:border-[#333]"}`}>{p}</button>)}</div><Input type="number" min={1} placeholder="Custom value" value={price.startPrice || ""} onChange={e => setPrice({ startPrice: parseFloat(e.target.value) })} className="w-full" /></Shell>);
+  if (step === 4) return (<Shell step={4} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-white mb-1">Life Story</h2><p className="text-[#888] text-xs mb-4">Each phase shapes your chart curve.</p><div className="space-y-2 max-h-40 overflow-y-auto mb-4">{story.phases.map(ph => <div key={ph.id} className="flex items-center gap-3 bg-[#141414] border border-[#333] rounded-xl px-4 py-2.5"><span>{ph.emoji}</span><div className="flex-1"><p className="text-sm text-[#f0f0f0]">{ph.name}</p><p className="text-xs text-[#888]">{ph.start}→{ph.end || "now"}</p></div><button onClick={() => setStory(s => ({ ...s, phases: s.phases.filter(p => p.id !== ph.id) }))} className="text-[#999] hover:text-red-400"><X size={13} /></button></div>)}</div><PhaseForm onAdd={ph => setStory(s => ({ ...s, phases: [...s.phases, ph] }))} /></Shell>);
+  if (step === 5) return (<Shell step={5} onNext={n} onBack={b}><h2 className="text-xl font-semibold text-white mb-1">Habits</h2><p className="text-[#888] text-xs mb-4">These move your index daily.</p><div className="flex flex-wrap gap-2 mb-4">{DEFS.map(h => <button key={h.name} onClick={() => { if (!hab.habits.find(x => x.name === h.name)) setHab(d => ({ ...d, habits: [...d.habits, { ...h, id: genId() }] })); }} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${hab.habits.find(x => x.name === h.name) ? "border-[#555] text-[#f0f0f0] bg-[#111]" : "border-[#333] text-[#888] hover:border-[#333] hover:text-[#bbb]"}`}>{h.emoji}{h.name}</button>)}</div><div className="space-y-1.5 max-h-32 overflow-y-auto mb-4">{hab.habits.map(h => <div key={h.id} className="flex items-center justify-between bg-[#141414] border border-[#333] rounded-xl px-4 py-2"><span className="text-sm text-[#f0f0f0]">{h.emoji}{h.name}</span><div className="flex items-center gap-2"><span className={`text-xs font-mono ${h.impact >= 0 ? "text-green-400" : "text-red-400"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span><button onClick={() => setHab(d => ({ ...d, habits: d.habits.filter(x => x.id !== h.id) }))} className="text-[#999] hover:text-red-400"><X size={12} /></button></div></div>)}</div></Shell>);
+  if (step === 6) return (<Shell step={6} onNext={n} onBack={b} nextLabel="Next →"><h2 className="text-xl font-semibold text-white mb-4">Ready to Launch</h2>{[["👤 Name", prof.name], ["📈 Ticker", `$${prof.ticker || prof.name.slice(0, 4).toUpperCase()}`], ["🌍 Country", `${loc.country} · ${CURRENCIES[loc.country]?.code}`], ["💰 IPO", `${CURRENCIES[loc.country]?.symbol}${price.startPrice}`], ["🗂️ Phases", `${story.phases.length} phases`], ["✅ Habits", `${hab.habits.length} habits`]].map(([k, v]) => <div key={k} className="flex justify-between items-center bg-[#141414] border border-[#333] rounded-xl px-4 py-3 mb-2"><span className="text-sm text-[#999]">{k}</span><span className="text-sm text-[#f0f0f0]">{v}</span></div>)}</Shell>);
 
   // Step 7: Login bento card
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-6 py-10">
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm space-y-3">
         <div className="text-center mb-6">
-          <p className="text-xs text-[#777] uppercase tracking-widest mb-1">Step 7 of 7</p>
-          <h2 className="text-xl font-semibold text-[#e8e8e8]">Almost there</h2>
-          <p className="text-[#666] text-xs mt-1">Sign in to sync your data across all devices.</p>
+          <p className="text-xs text-[#999] uppercase tracking-widest mb-1">Step 7 of 7</p>
+          <h2 className="text-xl font-semibold text-white">Almost there</h2>
+          <p className="text-[#888] text-xs mt-1">Sign in to sync your data across all devices.</p>
         </div>
         {/* Summary bento */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#181818] border border-[#2e2e2e] rounded-2xl p-4 col-span-2 flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl flex items-center justify-center text-2xl">📈</div>
+          <div className="bg-[#141414] border border-[#333] rounded-2xl p-4 col-span-2 flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#161616] border border-[#333] rounded-xl flex items-center justify-center text-2xl">📈</div>
             <div>
-              <p className="font-semibold text-[#e8e8e8]">{prof.ticker || prof.name.slice(0,4).toUpperCase()}</p>
-              <p className="text-xs text-[#666]">{prof.name} · {loc.country}</p>
+              <p className="font-semibold text-white">{prof.ticker || prof.name.slice(0,4).toUpperCase()}</p>
+              <p className="text-xs text-[#888]">{prof.name} · {loc.country}</p>
             </div>
             <div className="ml-auto text-right">
-              <p className="text-sm font-mono text-[#ddd]">{CURRENCIES[loc.country]?.symbol}{price.startPrice}</p>
-              <p className="text-[10px] text-[#777]">IPO Price</p>
+              <p className="text-sm font-mono text-[#f0f0f0]">{CURRENCIES[loc.country]?.symbol}{price.startPrice}</p>
+              <p className="text-[10px] text-[#999]">IPO Price</p>
             </div>
           </div>
-          <div className="bg-[#181818] border border-[#2e2e2e] rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-[#e8e8e8]">{story.phases.length}</p>
-            <p className="text-[10px] text-[#666] mt-1">Life Phases</p>
+          <div className="bg-[#141414] border border-[#333] rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{story.phases.length}</p>
+            <p className="text-[10px] text-[#888] mt-1">Life Phases</p>
           </div>
-          <div className="bg-[#181818] border border-[#2e2e2e] rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-[#e8e8e8]">{hab.habits.length}</p>
-            <p className="text-[10px] text-[#666] mt-1">Habits</p>
+          <div className="bg-[#141414] border border-[#333] rounded-2xl p-4 text-center">
+            <p className="text-2xl font-bold text-white">{hab.habits.length}</p>
+            <p className="text-[10px] text-[#888] mt-1">Habits</p>
           </div>
         </div>
         {/* Google login bento */}
         <button
           onClick={() => onComplete({ ...prof, ticker: prof.ticker || prof.name.slice(0, 4).toUpperCase(), ...loc, ...price, ...story, ...hab })}
-          className="w-full flex items-center justify-center gap-3 bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#333] text-[#ddd] hover:text-[#e8e8e8] rounded-2xl px-6 py-4 text-sm font-medium transition-all"
+          className="w-full flex items-center justify-center gap-3 bg-[#161616] border border-[#333] hover:border-[#333] text-[#f0f0f0] hover:text-white rounded-2xl px-6 py-4 text-sm font-medium transition-all"
         >
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Launch with Google
         </button>
-        <button onClick={b} className="w-full text-xs text-[#777] hover:text-[#777] py-2 transition-all">← Back</button>
+        <button onClick={b} className="w-full text-xs text-[#999] hover:text-[#999] py-2 transition-all">← Back</button>
       </div>
     </div>
   );
@@ -471,11 +471,11 @@ const CustomTooltip = ({ active, payload, phases, curr }) => {
   const d = payload[0].payload;
   const ph = phases?.find(p => d.date >= p.start && (!p.end || d.date <= p.end));
   return (
-    <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl p-3 shadow-2xl">
-      <p className="text-xs text-[#666] mb-1">{d.date}</p>
+    <div className="bg-[#161616] border border-[#333] rounded-xl p-3 shadow-2xl">
+      <p className="text-xs text-[#888] mb-1">{d.date}</p>
       {ph && <p className="text-xs mb-1.5" style={{ color: ph.color }}>{ph.emoji}{ph.name}</p>}
-      <p className="text-base font-semibold text-[#e8e8e8] font-mono">{curr}{parseFloat(d.value).toFixed(2)}</p>
-      {d.mood !== undefined && <p className="text-xs text-[#777] mt-1">Mood: {MOOD_LABELS[d.mood]}</p>}
+      <p className="text-base font-semibold text-white font-mono">{curr}{parseFloat(d.value).toFixed(2)}</p>
+      {d.mood !== undefined && <p className="text-xs text-[#999] mt-1">Mood: {MOOD_LABELS[d.mood]}</p>}
     </div>
   );
 };
@@ -534,12 +534,12 @@ const Heatmap = ({ orderBook }) => {
     <div className="overflow-x-auto">
       <div className="flex gap-3 min-w-max">
         {months.map(({ month, weeks }) => (
-          <div key={month}><p className="text-[10px] text-[#666] mb-1">{month}</p>
+          <div key={month}><p className="text-[10px] text-[#888] mb-1">{month}</p>
             <div className="flex gap-0.5">{weeks.map((week, wi) => <div key={wi} className="flex flex-col gap-0.5">{week.map((cell, di) => <div key={di} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: getColor(cell) }} title={cell?.date} />)}</div>)}</div>
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-2 mt-2"><span className="text-[10px] text-[#777]">Less</span>{["#111", "#7f1d1d", "#16a34a", "#166534"].map(c => <div key={c} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: c }} />)}<span className="text-[10px] text-[#777]">More</span></div>
+      <div className="flex items-center gap-2 mt-2"><span className="text-[10px] text-[#999]">Less</span>{["#111", "#7f1d1d", "#16a34a", "#166534"].map(c => <div key={c} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: c }} />)}<span className="text-[10px] text-[#999]">More</span></div>
     </div>
   );
 };
@@ -609,34 +609,34 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
     <Card>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Brain size={16} className="text-[#777]" />AI Life Coach</h2>
+          <h2 className="font-semibold text-white text-sm flex items-center gap-2"><Brain size={16} className="text-[#999]" />AI Life Coach</h2>
           <InfoTooltip feature="coach" />
         </div>
         <div className="flex items-center gap-2">
           {messages.length > 1 && (
-            <button onClick={clearHistory} className="text-[10px] text-[#555] hover:text-red-400 transition-all px-2 py-1 rounded-lg border border-[#252525] hover:border-red-900/30">
+            <button onClick={clearHistory} className="text-[10px] text-[#777] hover:text-red-400 transition-all px-2 py-1 rounded-lg border border-[#2a2a2a] hover:border-red-900/30">
               Clear history
             </button>
           )}
-          <span className="text-[10px] text-[#555] font-mono">{messages.length - 1} msgs</span>
+          <span className="text-[10px] text-[#777] font-mono">{messages.length - 1} msgs</span>
         </div>
       </div>
 
       {loadingHist && !histLoaded ? (
         <div className="flex items-center justify-center py-8">
-          <p className="text-xs text-[#555] animate-pulse">Loading chat history…</p>
+          <p className="text-xs text-[#777] animate-pulse">Loading chat history…</p>
         </div>
       ) : (
         <div className="space-y-3 max-h-96 overflow-y-auto mb-4 pr-1">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-[#1a1a1a] border border-[#333] text-[#ddd]" : "bg-[#181818] border border-[#2a2a2a] text-[#bbb]"}`}>
-                {m.role === "assistant" && <p className="text-[10px] text-[#555] mb-1 font-mono">COACH · {i === 0 ? "intro" : `msg ${i}`}</p>}
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-[#111] border border-[#333] text-[#f0f0f0]" : "bg-[#141414] border border-[#2a2a2a] text-[#bbb]"}`}>
+                {m.role === "assistant" && <p className="text-[10px] text-[#777] mb-1 font-mono">COACH · {i === 0 ? "intro" : `msg ${i}`}</p>}
                 {m.content}
               </div>
             </div>
           ))}
-          {loading && <div className="flex"><div className="bg-[#181818] border border-[#2a2a2a] rounded-2xl px-4 py-3 text-sm text-[#666]">Analysing…</div></div>}
+          {loading && <div className="flex"><div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl px-4 py-3 text-sm text-[#888]">Analysing…</div></div>}
           <div ref={bottomRef} />
         </div>
       )}
@@ -647,13 +647,144 @@ const AICoach = ({ config, lifeIndex, orderBook, skills, weaknesses, phases, hab
       </div>
       <div className="flex flex-wrap gap-2 mt-3">
         {["What are my patterns?", "Where am I weakest?", "Focus for next 30 days?", "Honest life review"].map(q => (
-          <button key={q} onClick={() => setInput(q)} className="text-xs px-3 py-1.5 rounded-lg bg-[#181818] border border-[#2a2a2a] text-[#666] hover:text-[#aaa] hover:border-[#333] transition-all">{q}</button>
+          <button key={q} onClick={() => setInput(q)} className="text-xs px-3 py-1.5 rounded-lg bg-[#141414] border border-[#2a2a2a] text-[#888] hover:text-[#bbb] hover:border-[#333] transition-all">{q}</button>
         ))}
       </div>
     </Card>
   );
 };
 
+
+
+// ── Animated Force Canvas — interest web ─────────────────────────────────────
+const CANVAS_COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
+
+const ForceCanvas = ({ topics, edges, freq }) => {
+  const canvasRef = useRef(null);
+  const animRef   = useRef(null);
+  const nodesRef  = useRef([]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || topics.length === 0) return;
+    const ctx = canvas.getContext('2d');
+
+    const W = canvas.offsetWidth  || 480;
+    const H = canvas.offsetHeight || 320;
+    canvas.width  = W * window.devicePixelRatio;
+    canvas.height = H * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    // Init nodes with golden-angle starting positions + small random velocity
+    nodesRef.current = topics.map((t, i) => {
+      const a = i * 2.399, r = 55 + (i % 4) * 42 + Math.floor(i / 4) * 12;
+      return {
+        id: t,
+        x:  W/2 + r * Math.cos(a),
+        y:  H/2 + r * Math.sin(a),
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        r:  5 + (freq[t] || 1) * 3,
+        color: CANVAS_COLORS[i % CANVAS_COLORS.length],
+      };
+    });
+    const nodeMap = () => Object.fromEntries(nodesRef.current.map(n => [n.id, n]));
+
+    const tick = () => {
+      const nodes = nodesRef.current;
+      const nm = nodeMap();
+
+      // repulsion between all pairs
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        // gentle center gravity
+        a.vx += (W/2 - a.x) * 0.0018;
+        a.vy += (H/2 - a.y) * 0.0018;
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const f = 1400 / (dist * dist);
+          const fx = (dx / dist) * f, fy = (dy / dist) * f;
+          a.vx += fx; a.vy += fy;
+          b.vx -= fx; b.vy -= fy;
+        }
+      }
+      // edge spring attraction
+      edges.forEach(([ta, tb]) => {
+        const a = nm[ta], b = nm[tb];
+        if (!a || !b) return;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const f = (dist - 110) * 0.028;
+        const fx = (dx / dist) * f, fy = (dy / dist) * f;
+        a.vx += fx; a.vy += fy;
+        b.vx -= fx; b.vy -= fy;
+      });
+
+      // integrate, damp, clamp
+      nodes.forEach(n => {
+        n.vx *= 0.86; n.vy *= 0.86;
+        n.x = Math.max(n.r + 6, Math.min(W - n.r - 70, n.x + n.vx));
+        n.y = Math.max(n.r + 6, Math.min(H - n.r - 6,  n.y + n.vy));
+      });
+
+      // ── draw ──
+      ctx.clearRect(0, 0, W, H);
+
+      // edges
+      edges.forEach(([ta, tb]) => {
+        const a = nm[ta], b = nm[tb];
+        if (!a || !b) return;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+        ctx.lineWidth = 0.9;
+        ctx.stroke();
+      });
+
+      // nodes + labels
+      nodes.forEach(n => {
+        // soft glow halo
+        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r + 14);
+        g.addColorStop(0,   n.color + '28');
+        g.addColorStop(1,   'transparent');
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r + 14, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+
+        // filled node
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = n.color;
+        ctx.fill();
+
+        // label
+        ctx.font = '500 10px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(n.id, n.x + n.r + 5, n.y + 3.5);
+        ctx.shadowBlur = 0;
+      });
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+
+    animRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topics.join(','), edges.map(e => e.join()).join()]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: '100%', height: '320px', display: 'block', borderRadius: '16px', background: '#050505' }}
+    />
+  );
+};
 
 // ── Changelog entries ─────────────────────────────────────────────────────────
 const CHANGELOG = [
@@ -1137,41 +1268,41 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
   }, [uid, orderBook.length]);
 
   return (
-    <div className={`min-h-screen ${C.bg} text-[#e8e8e8]`}>
+    <div className={`min-h-screen ${C.bg} text-white`}>
 
       {/* AI Generating Overlay */}
       {generatingReport && (
-        <div className="fixed inset-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-sm flex items-center justify-center px-6">
-          <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-[#080808]/90 backdrop-blur-sm flex items-center justify-center px-6">
+          <div className="bg-[#111] border border-[#333] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
             <div className="flex justify-center gap-1.5 mb-5">
               {[0,1,2,3].map(i => (
                 <div key={i} className="w-2 h-2 rounded-full bg-[#e8e8e8] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
             </div>
-            <p className="text-[#e8e8e8] font-semibold text-sm mb-1">AI is writing your report</p>
-            <p className="text-[#666] text-xs">Analysing your life index data…</p>
+            <p className="text-white font-semibold text-sm mb-1">AI is writing your report</p>
+            <p className="text-[#888] text-xs">Analysing your life index data…</p>
           </div>
         </div>
       )}
 
       {openCapsules.map(c => (
-        <div key={c.id} className="fixed top-4 left-4 right-4 z-50 bg-[#1e1e1e] border border-[#333] rounded-2xl p-4 shadow-2xl">
-          <p className="text-xs text-[#777] mb-1">⏰ Time Capsule Unlocked</p>
-          <p className="text-sm text-[#ddd] font-medium mb-2">{c.message}</p>
-          <p className="text-xs text-[#777]">Written on {c.createdDate}</p>
+        <div key={c.id} className="fixed top-4 left-4 right-4 z-50 bg-[#161616] border border-[#333] rounded-2xl p-4 shadow-2xl">
+          <p className="text-xs text-[#999] mb-1">⏰ Time Capsule Unlocked</p>
+          <p className="text-sm text-[#f0f0f0] font-medium mb-2">{c.message}</p>
+          <p className="text-xs text-[#999]">Written on {c.createdDate}</p>
           <Btn variant="ghost" onClick={() => setTimeCapsules(p => p.map(x => x.id === c.id ? { ...x, opened: true } : x))} className="mt-2 w-full text-xs py-2">Dismiss</Btn>
         </div>
       ))}
 
       {/* Topbar */}
-      <div className={`border-b border-[#252525] px-5 py-4 flex items-center justify-between sticky top-0 ${C.bg}/95 backdrop-blur z-20`}>
+      <div className={`border-b border-[#2a2a2a] px-5 py-4 flex items-center justify-between sticky top-0 ${C.bg}/95 backdrop-blur z-20`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl flex items-center justify-center text-base">📈</div>
-          <div><p className="font-semibold text-[#e8e8e8] text-sm leading-none">{config.name}</p><p className="text-xs text-[#777] font-mono">${ticker}·{CURRENCIES[config.country]?.code}</p></div>
+          <div className="w-8 h-8 bg-[#161616] border border-[#333] rounded-xl flex items-center justify-center text-base">📈</div>
+          <div><p className="font-semibold text-white text-sm leading-none">{config.name}</p><p className="text-xs text-[#999] font-mono">${ticker}·{CURRENCIES[config.country]?.code}</p></div>
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1.5 justify-end">
-            <p className="text-xl font-semibold text-[#e8e8e8] font-mono">{curr}{fmt(lifeIndex)}</p>
+            <p className="text-xl font-semibold text-white font-mono">{curr}{fmt(lifeIndex)}</p>
             <InfoTooltip feature="lifeIndex" />
           </div>
           <p className={`text-xs font-mono ${todayChange >= 0 ? "text-green-500" : "text-red-500"}`}>{todayChange >= 0 ? "+" : ""}{fmt(todayChange)}% today</p>
@@ -1186,12 +1317,12 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         </div>
       </div>
 
-      {streak >= 3 && <div className="bg-[#0d0d0d] border-b border-[#252525] px-5 py-2 flex items-center gap-2"><Flame size={13} className="text-orange-500" /><span className="text-xs text-[#777]">{streak}-day streak · Keep going</span><span className="ml-auto text-xs text-[#777]">Next dividend at {Math.ceil(streak / 7) * 7}d</span></div>}
+      {streak >= 3 && <div className="bg-[#080808] border-b border-[#2a2a2a] px-5 py-2 flex items-center gap-2"><Flame size={13} className="text-orange-500" /><span className="text-xs text-[#999]">{streak}-day streak · Keep going</span><span className="ml-auto text-xs text-[#999]">Next dividend at {Math.ceil(streak / 7) * 7}d</span></div>}
 
       {/* Tabs */}
-      <div className="border-b border-[#252525] flex bg-[#0d0d0d] sticky top-[57px] z-10 overflow-x-auto">
+      <div className="border-b border-[#2a2a2a] flex bg-[#080808] sticky top-[57px] z-10 overflow-x-auto">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setView(t.id)} className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-medium transition-all border-b-2 ${view === t.id ? "border-[#555] text-[#ddd]" : "border-transparent text-[#777] hover:text-[#777]"}`}>
+          <button key={t.id} onClick={() => setView(t.id)} className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-medium transition-all border-b-2 ${view === t.id ? "border-[#555] text-[#f0f0f0]" : "border-transparent text-[#999] hover:text-[#999]"}`}>
             {t.icon}<span className="hidden sm:block">{t.label}</span>
           </button>
         ))}
@@ -1212,7 +1343,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           <Card>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <p className="text-xs text-[#666]">Today's Mood</p>
+                <p className="text-xs text-[#888]">Today's Mood</p>
                 <InfoTooltip feature="mood" />
               </div>
               <div className="flex gap-2">
@@ -1226,7 +1357,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           <Card>
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-[#e8e8e8] flex items-center gap-2 text-sm"><Activity size={16} className="text-[#777]" />Performance</h2>
+                <h2 className="font-semibold text-white flex items-center gap-2 text-sm"><Activity size={16} className="text-[#999]" />Performance</h2>
                 <InfoTooltip feature="chart" />
               </div>
               <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -1235,7 +1366,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 </span>
                 <div className="flex gap-1">
                   {["1M", "3M", "6M", "1Y", "ALL"].map(r => (
-                    <button key={r} onClick={() => setTimeRange(r)} className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${timeRange === r ? "bg-[#e8e8e8] text-[#080808]" : "text-[#666] hover:text-[#aaa]"}`}>{r}</button>
+                    <button key={r} onClick={() => setTimeRange(r)} className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${timeRange === r ? "bg-[#e8e8e8] text-[#080808]" : "text-[#888] hover:text-[#bbb]"}`}>{r}</button>
                   ))}
                 </div>
               </div>
@@ -1246,90 +1377,62 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           {technicals && (
             <Card>
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Zap size={16} className="text-[#777]" />Technicals</h2>
+                <h2 className="font-semibold text-white text-sm flex items-center gap-2"><Zap size={16} className="text-[#999]" />Technicals</h2>
                 <InfoTooltip feature="technicals" />
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${technicals.rating.includes("BUY") ? "border-green-900 text-green-500 bg-green-950/30" : technicals.rating.includes("SELL") ? "border-red-900 text-red-500 bg-red-950/30" : "border-[#2e2e2e] text-[#777]"}`}>{technicals.rating}</span>
-                {technicals.signals.map(s => <span key={s.label} className={`px-3 py-1.5 rounded-lg text-xs bg-[#181818] border border-[#2a2a2a] ${s.color}`}>{s.icon}{s.label}</span>)}
+                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${technicals.rating.includes("BUY") ? "border-green-900 text-green-500 bg-green-950/30" : technicals.rating.includes("SELL") ? "border-red-900 text-red-500 bg-red-950/30" : "border-[#333] text-[#999]"}`}>{technicals.rating}</span>
+                {technicals.signals.map(s => <span key={s.label} className={`px-3 py-1.5 rounded-lg text-xs bg-[#141414] border border-[#2a2a2a] ${s.color}`}>{s.icon}{s.label}</span>)}
               </div>
               <div className="grid grid-cols-2 gap-2 mb-4">
-                {[["RSI (14)", fmt(technicals.rsi), technicals.rsi > 70 ? "text-yellow-500" : technicals.rsi < 30 ? "text-blue-500" : "text-[#aaa]"], ["SMA 14", `${curr}${fmt(technicals.sma14)}`, "text-[#aaa]"], ["SMA 30", `${curr}${fmt(technicals.sma30)}`, "text-[#aaa]"], ["Momentum", `${technicals.mom >= 0 ? "+" : ""}${fmt(technicals.mom)}`, technicals.mom >= 0 ? "text-green-500" : "text-red-500"], ["52W High", `${curr}${fmt(technicals.high52)}`, "text-[#aaa]"], ["52W Low", `${curr}${fmt(technicals.low52)}`, "text-[#aaa]"], ["Volatility", `${fmt(technicals.vol)}σ`, technicals.vol > 15 ? "text-red-500" : technicals.vol > 7 ? "text-yellow-500" : "text-green-500"], ["Net Worth", `${technicals.netWorth >= 0 ? "+" : ""}${technicals.netWorth}pts`, technicals.netWorth >= 0 ? "text-green-500" : "text-red-500"]].map(([l, v, c]) => (
-                  <div key={l} className="bg-[#141414] border border-[#252525] rounded-xl px-4 py-3 flex justify-between items-center">
-                    <span className="text-xs text-[#777]">{l}</span><span className={`text-sm font-semibold font-mono ${c}`}>{v}</span>
+                {[["RSI (14)", fmt(technicals.rsi), technicals.rsi > 70 ? "text-yellow-500" : technicals.rsi < 30 ? "text-blue-500" : "text-[#bbb]"], ["SMA 14", `${curr}${fmt(technicals.sma14)}`, "text-[#bbb]"], ["SMA 30", `${curr}${fmt(technicals.sma30)}`, "text-[#bbb]"], ["Momentum", `${technicals.mom >= 0 ? "+" : ""}${fmt(technicals.mom)}`, technicals.mom >= 0 ? "text-green-500" : "text-red-500"], ["52W High", `${curr}${fmt(technicals.high52)}`, "text-[#bbb]"], ["52W Low", `${curr}${fmt(technicals.low52)}`, "text-[#bbb]"], ["Volatility", `${fmt(technicals.vol)}σ`, technicals.vol > 15 ? "text-red-500" : technicals.vol > 7 ? "text-yellow-500" : "text-green-500"], ["Net Worth", `${technicals.netWorth >= 0 ? "+" : ""}${technicals.netWorth}pts`, technicals.netWorth >= 0 ? "text-green-500" : "text-red-500"]].map(([l, v, c]) => (
+                  <div key={l} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 flex justify-between items-center">
+                    <span className="text-xs text-[#999]">{l}</span><span className={`text-sm font-semibold font-mono ${c}`}>{v}</span>
                   </div>
                 ))}
               </div>
-              <div className="border-t border-[#252525] pt-4 mb-4">
-                <div className="flex items-center gap-2 mb-3"><p className="text-xs text-[#777]">Sector Breakdown</p><InfoTooltip feature="sectors" /></div>
+              <div className="border-t border-[#2a2a2a] pt-4 mb-4">
+                <div className="flex items-center gap-2 mb-3"><p className="text-xs text-[#999]">Sector Breakdown</p><InfoTooltip feature="sectors" /></div>
                 <SectorRadar sectorScores={sectorScores} />
-                <div className="grid grid-cols-5 gap-1 mt-2">{SECTORS.map(s => <div key={s.id} className="text-center"><p className="text-base">{s.emoji}</p><p className="text-[10px] text-[#777]">{Math.round(sectorScores[s.id] || 50)}</p></div>)}</div>
+                <div className="grid grid-cols-5 gap-1 mt-2">{SECTORS.map(s => <div key={s.id} className="text-center"><p className="text-base">{s.emoji}</p><p className="text-[10px] text-[#999]">{Math.round(sectorScores[s.id] || 50)}</p></div>)}</div>
               </div>
 
-              {/* Interest Network Map */}
+              {/* Interest Network Map — animated */}
               {interests && interests.length > 0 && (() => {
                 const allTopics = [...new Set(interests.flatMap(i => i.topics))];
                 if (allTopics.length < 2) return null;
-                const COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
                 const freq = {};
                 interests.forEach(it => it.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
-                const W = 320, H = 240;
-                // place nodes with natural spread using golden angle
-                const pos = {};
-                allTopics.forEach((t, i) => {
-                  const a = i * 2.399; // golden angle
-                  const r = 30 + (i % 3) * 28 + Math.floor(i / 3) * 12;
-                  const cx = W/2 + r * Math.cos(a), cy = H/2 + r * Math.sin(a);
-                  pos[t] = { x: Math.max(20, Math.min(W-20, cx)), y: Math.max(20, Math.min(H-20, cy)) };
-                });
                 const edgeSet = new Set(); const edges = [];
                 interests.forEach(it => {
                   for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
                     const key = [it.topics[a], it.topics[b]].sort().join("|||");
-                    if (!edgeSet.has(key) && pos[it.topics[a]] && pos[it.topics[b]]) {
-                      edgeSet.add(key); edges.push([it.topics[a], it.topics[b]]);
-                    }
+                    if (!edgeSet.has(key)) { edgeSet.add(key); edges.push([it.topics[a], it.topics[b]]); }
                   }
                 });
                 return (
-                  <div className="mt-4 border-t border-[#252525] pt-4">
+                  <div className="mt-4 border-t border-[#2a2a2a] pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <p className="text-xs text-[#aaa] font-medium">Interest Map</p>
-                      <span className="text-[9px] text-[#555] font-mono">{allTopics.length} topics · {interests.length} videos</span>
+                      <p className="text-xs text-[#bbb] font-medium">Interest Web</p>
+                      <span className="text-[9px] text-[#777] font-mono">{allTopics.length} topics · {interests.length} videos</span>
                     </div>
-                    <div className="rounded-xl overflow-hidden bg-[#080808] border border-[#1e1e1e]">
-                      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
-                        {edges.map(([ta, tb], i) => (
-                          <line key={i} x1={pos[ta].x} y1={pos[ta].y} x2={pos[tb].x} y2={pos[tb].y} stroke="#ffffff" strokeWidth="0.5" strokeOpacity="0.12" />
-                        ))}
-                        {allTopics.map((t, i) => {
-                          const p = pos[t]; const color = COLORS[i % COLORS.length];
-                          const r = 4 + (freq[t]||1) * 2;
-                          return (
-                            <g key={t}>
-                              <circle cx={p.x} cy={p.y} r={r+6} fill={color} opacity="0.08" />
-                              <circle cx={p.x} cy={p.y} r={r} fill={color} opacity="0.9" />
-                              <text x={p.x + r + 4} y={p.y + 4} fill="#cccccc" fontSize="8" fontFamily="-apple-system,sans-serif" fontWeight="500">{t}</text>
-                            </g>
-                          );
-                        })}
-                      </svg>
+                    <div className="rounded-xl overflow-hidden border border-[#222]" style={{height:"220px"}}>
+                      <ForceCanvas topics={allTopics} edges={edges} freq={freq} />
                     </div>
-                    <p className="text-[10px] text-[#444] mt-2 text-center">Lines connect co-occurring topics · bigger = more videos</p>
                   </div>
                 );
               })()}
-              <div className="bg-[#141414] border border-[#252525] rounded-xl p-4 mb-3">
-                <div className="flex items-center gap-2 mb-3"><p className="text-xs text-[#777]">Balance Sheet</p><InfoTooltip feature="balanceSheet" /></div>
+              <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3"><p className="text-xs text-[#999]">Balance Sheet</p><InfoTooltip feature="balanceSheet" /></div>
                 <div className="flex items-center gap-4">
-                  <div className="flex-1"><p className="text-xs text-green-600 mb-1">Assets</p><div className="h-1.5 bg-[#0d0d0d] rounded-full"><div className="h-full bg-green-800 rounded-full" style={{ width: `${Math.min(100, technicals.assetScore)}%` }} /></div><p className="text-[10px] text-[#777] mt-1">+{technicals.assetScore}pts</p></div>
-                  <div className="flex-1"><p className="text-xs text-red-600 mb-1">Debt</p><div className="h-1.5 bg-[#0d0d0d] rounded-full"><div className="h-full bg-red-900 rounded-full" style={{ width: `${Math.min(100, technicals.debtScore)}%` }} /></div><p className="text-[10px] text-[#777] mt-1">−{technicals.debtScore}pts</p></div>
-                  <div className="text-center"><p className="text-xs text-[#777]">Net</p><p className={`text-base font-bold font-mono ${technicals.netWorth >= 0 ? "text-green-600" : "text-red-600"}`}>{technicals.netWorth >= 0 ? "+" : ""}{technicals.netWorth}</p></div>
+                  <div className="flex-1"><p className="text-xs text-green-600 mb-1">Assets</p><div className="h-1.5 bg-[#080808] rounded-full"><div className="h-full bg-green-800 rounded-full" style={{ width: `${Math.min(100, technicals.assetScore)}%` }} /></div><p className="text-[10px] text-[#999] mt-1">+{technicals.assetScore}pts</p></div>
+                  <div className="flex-1"><p className="text-xs text-red-600 mb-1">Debt</p><div className="h-1.5 bg-[#080808] rounded-full"><div className="h-full bg-red-900 rounded-full" style={{ width: `${Math.min(100, technicals.debtScore)}%` }} /></div><p className="text-[10px] text-[#999] mt-1">−{technicals.debtScore}pts</p></div>
+                  <div className="text-center"><p className="text-xs text-[#999]">Net</p><p className={`text-base font-bold font-mono ${technicals.netWorth >= 0 ? "text-green-600" : "text-red-600"}`}>{technicals.netWorth >= 0 ? "+" : ""}{technicals.netWorth}</p></div>
                 </div>
               </div>
-              <div className="bg-[#141414] border border-[#252525] rounded-xl p-4">
-                <p className="text-[10px] text-[#777] mb-2 uppercase tracking-wider">AI Signal</p>
-                <p className="text-xs text-[#777] leading-relaxed">
+              <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
+                <p className="text-[10px] text-[#999] mb-2 uppercase tracking-wider">AI Signal</p>
+                <p className="text-xs text-[#999] leading-relaxed">
                   {technicals.rsi > 70 ? "Running hot — gains may be overdone." : technicals.rsi < 30 ? "Deeply oversold. Strong recovery potential." : technicals.mom > 5 ? "Positive momentum building." : technicals.mom < -5 ? "Negative momentum — focus on high-yield habits." : "Range-bound. Small consistent wins will break resistance."}
                   {technicals.netWorth < -10 ? " ⚠️ Debt exceeding assets." : technicals.netWorth > 20 ? " 🌟 Strong asset base." : ""}
                   {streak >= 7 ? ` 🔥 ${streak}-day streak compounding.` : ""}
@@ -1339,9 +1442,9 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           )}
 
           <Card>
-            <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4">
-              <Brain size={16} className="text-[#777]" />Log an Event
-              <span className="ml-auto text-[9px] text-[#555] font-normal font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI powered</span>
+            <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-4">
+              <Brain size={16} className="text-[#999]" />Log an Event
+              <span className="ml-auto text-[9px] text-[#777] font-normal font-mono px-2 py-0.5 border border-[#2a2a2a] rounded-lg">AI powered</span>
             </h2>
             <Textarea
               value={scenario}
@@ -1353,18 +1456,18 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
 
             {/* AI Prediction result */}
             {predicting && (
-              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex items-center gap-3">
+              <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex items-center gap-3">
                 <div className="flex gap-1">
                   {[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
                 </div>
-                <span className="text-xs text-[#666]">AI is analysing your situation…</span>
+                <span className="text-xs text-[#888]">AI is analysing your situation…</span>
               </div>
             )}
 
             {!predicting && aiPrediction && (
-              <div className={`border rounded-xl p-4 mb-3 ${aiPrediction.impact === null ? "border-[#2a2a2a] bg-[#181818]" : aiPrediction.impact >= 0 ? "border-green-900/30 bg-green-950/10" : "border-red-900/30 bg-red-950/10"}`}>
+              <div className={`border rounded-xl p-4 mb-3 ${aiPrediction.impact === null ? "border-[#2a2a2a] bg-[#141414]" : aiPrediction.impact >= 0 ? "border-green-900/30 bg-green-950/10" : "border-red-900/30 bg-red-950/10"}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[#666] font-mono uppercase tracking-wider">AI Prediction</span>
+                  <span className="text-xs text-[#888] font-mono uppercase tracking-wider">AI Prediction</span>
                   {aiPrediction.impact !== null && (
                     <div className="flex items-center gap-1">
                       <input
@@ -1378,7 +1481,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-[#aaa] leading-relaxed mb-3">{aiPrediction.emoji} {aiPrediction.reason}</p>
+                <p className="text-xs text-[#bbb] leading-relaxed mb-3">{aiPrediction.emoji} {aiPrediction.reason}</p>
                 {aiPrediction.impact !== null && (
                   <div className="flex gap-2">
                     <Btn onClick={confirmLog} className="flex-1 text-xs">
@@ -1386,7 +1489,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     </Btn>
                     <button
                       onClick={() => setAiPrediction(null)}
-                      className="px-3 py-2 rounded-xl text-xs text-[#666] border border-[#252525] hover:text-[#aaa] hover:border-[#333] transition-all"
+                      className="px-3 py-2 rounded-xl text-xs text-[#888] border border-[#2a2a2a] hover:text-[#bbb] hover:border-[#333] transition-all"
                     >
                       Dismiss
                     </button>
@@ -1405,16 +1508,16 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 : <><Brain size={15} />Predict Impact</>
               }
             </Btn>
-            <p className="text-[10px] text-[#444] mt-2 text-center">AI predicts the % impact — you confirm before it logs</p>
+            <p className="text-[10px] text-[#666] mt-2 text-center">AI predicts the % impact — you confirm before it logs</p>
           </Card>
 
           <Card>
-            <h2 className="font-semibold text-[#e8e8e8] text-sm mb-4">Transaction Log</h2>
+            <h2 className="font-semibold text-white text-sm mb-4">Transaction Log</h2>
             {orderBook.length === 0 ? <p className="text-[#4a4a4a] text-sm text-center py-8">No transactions yet.</p> : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {orderBook.slice(0, 30).map(o => (
-                  <div key={o.id} className="flex items-center justify-between bg-[#141414] border border-[#252525] rounded-xl px-4 py-3">
-                    <div><p className="text-sm text-[#999] truncate max-w-52 sm:max-w-64">{o.desc}</p><p className="text-[10px] text-[#4a4a4a]">{o.date}·{o.time}{o.tag ? `·${o.tag}` : ""}</p></div>
+                  <div key={o.id} className="flex items-center justify-between bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3">
+                    <div><p className="text-sm text-[#aaa] truncate max-w-52 sm:max-w-64">{o.desc}</p><p className="text-[10px] text-[#4a4a4a]">{o.date}·{o.time}{o.tag ? `·${o.tag}` : ""}</p></div>
                     <div className="text-right"><p className={`text-sm font-bold font-mono ${o.change >= 0 ? "text-green-600" : "text-red-600"}`}>{o.change > 0 ? "+" : ""}{fmt(o.change)}%</p><p className="text-[10px] text-[#4a4a4a] font-mono">{curr}{o.newIndex}</p></div>
                   </div>
                 ))}
@@ -1438,29 +1541,29 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           </div>
           <Card>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Newspaper size={16} className="text-[#777]" />Publish Press Release</h2>
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2"><Newspaper size={16} className="text-[#999]" />Publish Press Release</h2>
               <InfoTooltip feature="press" />
             </div>
             <div className="space-y-3">
               <Input value={prTitle} onChange={e => setPrTitle(e.target.value)} placeholder="Headline" className="w-full" />
               <Textarea value={prBody} onChange={e => setPrBody(e.target.value)} placeholder="Write your full press release…" className="w-full h-28" />
               <div className="flex gap-2 flex-wrap">
-                <div className="flex gap-1">{[["positive", "🟢"], ["neutral", "⚪"], ["negative", "🔴"]].map(([v, l]) => <button key={v} onClick={() => setPrType(v)} className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${prType === v ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{l}{v}</button>)}</div>
+                <div className="flex gap-1">{[["positive", "🟢"], ["neutral", "⚪"], ["negative", "🔴"]].map(([v, l]) => <button key={v} onClick={() => setPrType(v)} className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${prType === v ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#141414] text-[#888] border-[#333] hover:border-[#333]"}`}>{l}{v}</button>)}</div>
                 <Input value={prImpact} onChange={e => setPrImpact(e.target.value)} placeholder="% impact" className="w-24 font-mono" />
                 <Btn onClick={() => { if (!prTitle.trim() || !prBody.trim()) return; const impact = prImpact ? parseFloat(prImpact) : prType === "positive" ? 3 : prType === "negative" ? -3 : 0; const now = new Date(); setPressReleases(p => [{ id: genId(), title: prTitle, body: prBody, type: prType, impact, date: now.toISOString().split("T")[0], time: now.toLocaleTimeString() }, ...p]); if (impact !== 0) execute(`📰 ${prTitle}`, impact, "press"); setPrTitle(""); setPrBody(""); setPrImpact(""); setPrType("neutral"); }} disabled={!prTitle.trim() || !prBody.trim()}><Newspaper size={15} />Publish</Btn>
               </div>
             </div>
           </Card>
           {pressReleases.map(pr => (
-            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.tag === "weekly-summary" ? "bg-purple-950/10 border-purple-900/20" : pr.tag === "daily-report" ? "bg-blue-950/10 border-blue-900/20" : pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#181818] border-[#2a2a2a]"}`}>
+            <div key={pr.id} className={`border rounded-2xl p-5 ${pr.tag === "weekly-summary" ? "bg-purple-950/10 border-purple-900/20" : pr.tag === "daily-report" ? "bg-blue-950/10 border-blue-900/20" : pr.type === "positive" ? "bg-green-950/10 border-green-900/20" : pr.type === "negative" ? "bg-red-950/10 border-red-900/20" : "bg-[#141414] border-[#2a2a2a]"}`}>
               <div className="flex items-start justify-between mb-3">
-                <div><p className="font-semibold text-[#ddd] text-sm">{pr.title}</p><p className="text-[10px] text-[#4a4a4a] mt-1">{pr.date}·{pr.time}</p></div>
+                <div><p className="font-semibold text-[#f0f0f0] text-sm">{pr.title}</p><p className="text-[10px] text-[#4a4a4a] mt-1">{pr.date}·{pr.time}</p></div>
                 <div className="flex gap-2">
-                  {pr.impact !== 0 && <span className={`text-xs font-bold font-mono px-2 py-1 rounded-lg ${pr.type === "positive" ? "bg-green-950/40 text-green-600" : pr.type === "negative" ? "bg-red-950/40 text-red-600" : "bg-[#1e1e1e] text-[#777]"}`}>{pr.impact > 0 ? "+" : ""}{pr.impact}%</span>}
-                  <button onClick={() => setPressReleases(p => p.filter(x => x.id !== pr.id))} className="text-[#444] hover:text-red-600"><X size={14} /></button>
+                  {pr.impact !== 0 && <span className={`text-xs font-bold font-mono px-2 py-1 rounded-lg ${pr.type === "positive" ? "bg-green-950/40 text-green-600" : pr.type === "negative" ? "bg-red-950/40 text-red-600" : "bg-[#161616] text-[#999]"}`}>{pr.impact > 0 ? "+" : ""}{pr.impact}%</span>}
+                  <button onClick={() => setPressReleases(p => p.filter(x => x.id !== pr.id))} className="text-[#666] hover:text-red-600"><X size={14} /></button>
                 </div>
               </div>
-              <p className="text-sm text-[#666] leading-relaxed">{pr.body}</p>
+              <p className="text-sm text-[#888] leading-relaxed">{pr.body}</p>
             </div>
           ))}
         </>)}
@@ -1470,35 +1573,68 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           <div className="grid sm:grid-cols-2 gap-3">
             {habits.map(h => {
               // compute this habit's consecutive-day streak
-              const habitLogs = orderBook.filter(o => o.desc === h.name || (o.tag === "habit" && o.desc.includes(h.name)));
+              // Streak: filter ALL logs for this habit (by name or tag)
+              const habitLogs = orderBook.filter(o =>
+                o.desc === h.name ||
+                o.desc === `${h.emoji}${h.name}` ||
+                (o.tag === "habit" && (o.desc === h.name || o.desc.includes(h.name)))
+              );
               const loggedDates = new Set(habitLogs.map(o => o.date));
               let hStreak = 0;
               const d = new Date(); d.setHours(0,0,0,0);
+              const todayStr = d.toISOString().split("T")[0];
+              // If today not logged yet, start counting from yesterday so streak doesn't reset at midnight
+              if (!loggedDates.has(todayStr)) d.setDate(d.getDate() - 1);
               while (true) {
                 const ds = d.toISOString().split("T")[0];
                 if (!loggedDates.has(ds)) break;
                 hStreak++; d.setDate(d.getDate() - 1);
               }
+              const loggedToday = loggedDates.has(todayStr);
               return (
-              <div key={h.id} className={`${C.card} border ${C.border} rounded-2xl p-4 flex items-center justify-between`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="font-medium text-[#ddd] text-sm">{h.emoji}{h.name}</p>
-                    {hStreak > 0 && <span className="text-[9px] font-mono text-orange-500 bg-orange-950/20 border border-orange-900/20 px-1.5 py-0.5 rounded-full">🔥{hStreak}d</span>}
+              <div key={h.id} className={`${C.card} border ${C.border} rounded-2xl p-4`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="font-semibold text-white text-sm">{h.emoji} {h.name}</p>
+                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-lg border ${h.impact >= 0 ? "text-green-400 bg-green-950/30 border-green-900/30" : "text-red-400 bg-red-950/30 border-red-900/30"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</span>
+                    </div>
+                    <p className="text-[11px] text-[#999] mb-2">{SECTORS.find(s => s.id === h.sector)?.emoji} {SECTORS.find(s => s.id === h.sector)?.label}</p>
+                    {/* Streak display */}
+                    <div className="flex items-center gap-3">
+                      {hStreak > 0 ? (
+                        <div className="flex items-center gap-1.5 bg-orange-950/30 border border-orange-900/30 rounded-xl px-2.5 py-1.5">
+                          <span className="text-base leading-none">🔥</span>
+                          <div>
+                            <p className="text-sm font-bold font-mono text-orange-400 leading-none">{hStreak}</p>
+                            <p className="text-[9px] text-orange-700 leading-none mt-0.5">day streak</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-[#111] border border-[#222] rounded-xl px-2.5 py-1.5">
+                          <span className="text-base leading-none opacity-30">🔥</span>
+                          <div>
+                            <p className="text-sm font-bold font-mono text-[#444] leading-none">0</p>
+                            <p className="text-[9px] text-[#333] leading-none mt-0.5">day streak</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-[10px] text-[#666]">{habitLogs.length} total logs</div>
+                    </div>
                   </div>
-                  <p className={`text-xs mt-0.5 font-mono ${h.impact >= 0 ? "text-green-600" : "text-red-600"}`}>{h.impact > 0 ? "+" : ""}{h.impact}%</p>
-                  <p className="text-[10px] text-[#777] mt-0.5">{SECTORS.find(s => s.id === h.sector)?.emoji}{SECTORS.find(s => s.id === h.sector)?.label}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Btn variant={h.impact >= 0 ? "success" : "danger"} onClick={() => execute(h.name, h.impact, "habit")} className="text-xs py-2 px-3">Log</Btn>
-                  <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} className="text-[#444] hover:text-red-600"><Trash2 size={15} /></button>
+                  <div className="flex flex-col gap-2 items-end">
+                    <Btn variant={h.impact >= 0 ? "success" : "danger"} onClick={() => execute(h.name, h.impact, "habit")} className={`text-xs py-2 px-3 ${loggedToday ? "opacity-60" : ""}`}>
+                      {loggedToday ? "✓ Done" : "Log"}
+                    </Btn>
+                    <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} className="text-[#444] hover:text-red-500 p-1"><Trash2 size={13} /></button>
+                  </div>
                 </div>
               </div>
               );
             })}
           </div>
           <Card>
-            <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#ddd] text-sm">Add Habit</h3><InfoTooltip feature="habits" /></div>
+            <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#f0f0f0] text-sm">Add Habit</h3><InfoTooltip feature="habits" /></div>
             <div className="flex gap-2 flex-wrap">
               <Input
                 placeholder="Habit name"
@@ -1515,7 +1651,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 onChange={e => setNewHabit(p => ({ ...p, impact: e.target.value }))}
               />
               <select
-                className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none"
+                className="bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-xs text-[#bbb] focus:outline-none"
                 value={newHabit.type}
                 onChange={e => setNewHabit(p => ({ ...p, type: e.target.value }))}
               >
@@ -1523,7 +1659,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <option value="negative">− Negative</option>
               </select>
               <select
-                className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none"
+                className="bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-xs text-[#bbb] focus:outline-none"
                 value={newHabit.sector}
                 onChange={e => setNewHabit(p => ({ ...p, sector: e.target.value }))}
               >
@@ -1547,29 +1683,29 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
             </div>
           </Card>
           <Card>
-            <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#ddd] text-sm flex items-center gap-2"><TrendingUp size={15} className="text-[#777]" />Monthly P&L</h3><InfoTooltip feature="pnl" /></div>
+            <div className="flex items-center gap-2 mb-4"><h3 className="font-semibold text-[#f0f0f0] text-sm flex items-center gap-2"><TrendingUp size={15} className="text-[#999]" />Monthly P&L</h3><InfoTooltip feature="pnl" /></div>
             {pnl.length === 0 ? <p className="text-[#4a4a4a] text-sm text-center py-4">No data yet.</p> : (
               <div className="space-y-2">
                 {pnl.map(m => (
-                  <div key={m.month} className="flex items-center justify-between bg-[#141414] border border-[#252525] rounded-xl px-4 py-3">
-                    <span className="text-xs text-[#777] font-mono w-10">{m.month}</span>
+                  <div key={m.month} className="flex items-center justify-between bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3">
+                    <span className="text-xs text-[#999] font-mono w-10">{m.month}</span>
                     <div className="flex gap-4">
                       <div className="text-center">
                         <p className="text-xs text-green-600 font-mono">+{fmt(m.gain)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">gains</p>
+                        <p className="text-[9px] text-[#666] mt-0.5">gains</p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-red-600 font-mono">{fmt(m.loss)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">losses</p>
+                        <p className="text-[9px] text-[#666] mt-0.5">losses</p>
                       </div>
                       <div className="text-center">
                         <p className={`text-xs font-bold font-mono ${m.gain + m.loss >= 0 ? "text-green-500" : "text-red-500"}`}>{m.gain + m.loss >= 0 ? "+" : ""}{fmt(m.gain + m.loss)}%</p>
-                        <p className="text-[9px] text-[#444] mt-0.5">net</p>
+                        <p className="text-[9px] text-[#666] mt-0.5">net</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-[#4a4a4a]">{m.count}</p>
-                      <p className="text-[9px] text-[#333]">logs</p>
+                      <p className="text-[9px] text-[#555]">logs</p>
                     </div>
                   </div>
                 ))}
@@ -1581,32 +1717,32 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* ASSETS */}
         {view === "assets" && (<>
           <Card>
-            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Star size={16} className="text-[#777]" />Skills<span className="text-[#777] font-normal">— Assets</span></h2><InfoTooltip feature="skills" /></div>
+            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-white text-sm flex items-center gap-2"><Star size={16} className="text-[#999]" />Skills<span className="text-[#999] font-normal">— Assets</span></h2><InfoTooltip feature="skills" /></div>
             <div className="space-y-3 mb-5">
               {skills.length === 0 && <p className="text-[#4a4a4a] text-sm text-center py-4">No skills yet.</p>}
               {skills.map(sk => (
-                <div key={sk.id} className="bg-[#141414] border border-[#252525] rounded-xl p-4">
+                <div key={sk.id} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <div><p className="font-medium text-[#ddd] text-sm">{sk.name}</p><p className="text-xs text-[#777]">{sk.category}·{SKILL_LEVELS[sk.level]}</p></div>
+                    <div><p className="font-medium text-[#f0f0f0] text-sm">{sk.name}</p><p className="text-xs text-[#999]">{sk.category}·{SKILL_LEVELS[sk.level]}</p></div>
                     <div className="flex gap-2">
                       <span className="text-xs font-bold text-green-700 bg-green-950/30 px-2 py-1 rounded-lg">+{(sk.level + 1) * 5}pts</span>
-                      <button onClick={() => { setSkills(p => p.map(x => x.id === sk.id ? { ...x, level: Math.min(4, x.level + 1) } : x)); execute(`📈 Levelled up:${sk.name}`, (sk.level + 1) * 0.8, "skill"); }} className="text-[10px] bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#333] px-2 py-1 rounded-lg text-[#777] hover:text-[#999] transition-all">Level Up</button>
-                      <button onClick={() => setSkills(p => p.filter(x => x.id !== sk.id))} className="text-[#444] hover:text-red-600"><X size={13} /></button>
+                      <button onClick={() => { setSkills(p => p.map(x => x.id === sk.id ? { ...x, level: Math.min(4, x.level + 1) } : x)); execute(`📈 Levelled up:${sk.name}`, (sk.level + 1) * 0.8, "skill"); }} className="text-[10px] bg-[#161616] border border-[#333] hover:border-[#333] px-2 py-1 rounded-lg text-[#999] hover:text-[#aaa] transition-all">Level Up</button>
+                      <button onClick={() => setSkills(p => p.filter(x => x.id !== sk.id))} className="text-[#666] hover:text-red-600"><X size={13} /></button>
                     </div>
                   </div>
-                  <div className="flex gap-1">{SKILL_LEVELS.map((_, i) => <div key={i} className={`flex-1 h-1 rounded-full ${i <= sk.level ? "bg-green-800" : "bg-[#141414]"}`} />)}</div>
+                  <div className="flex gap-1">{SKILL_LEVELS.map((_, i) => <div key={i} className={`flex-1 h-1 rounded-full ${i <= sk.level ? "bg-green-800" : "bg-[#0a0a0a]"}`} />)}</div>
                   {sk.developingHabit && <p className="text-[10px] text-[#4a4a4a] mt-2">🔁 Via:{sk.developingHabit}</p>}
                 </div>
               ))}
             </div>
-            <div className="border-t border-[#252525] pt-4 space-y-2">
+            <div className="border-t border-[#2a2a2a] pt-4 space-y-2">
               <div className="flex gap-2 flex-wrap">
                 <Input value={newSkill.name} onChange={e => setNewSkill(p => ({ ...p, name: e.target.value }))} placeholder="Skill name" className="flex-1 min-w-32" />
-                <select value={newSkill.category} onChange={e => setNewSkill(p => ({ ...p, category: e.target.value }))} className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none">{["Technical", "Creative", "Social", "Physical", "Mental", "Academic", "Leadership"].map(c => <option key={c}>{c}</option>)}</select>
-                <select value={newSkill.sector} onChange={e => setNewSkill(p => ({ ...p, sector: e.target.value }))} className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none"><option value="auto">🤖 Auto</option>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji}{s.label}</option>)}</select>
+                <select value={newSkill.category} onChange={e => setNewSkill(p => ({ ...p, category: e.target.value }))} className="bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-xs text-[#bbb] focus:outline-none">{["Technical", "Creative", "Social", "Physical", "Mental", "Academic", "Leadership"].map(c => <option key={c}>{c}</option>)}</select>
+                <select value={newSkill.sector} onChange={e => setNewSkill(p => ({ ...p, sector: e.target.value }))} className="bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-xs text-[#bbb] focus:outline-none"><option value="auto">🤖 Auto</option>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.emoji}{s.label}</option>)}</select>
               </div>
               <div className="flex gap-2">
-                <select value={newSkill.level} onChange={e => setNewSkill(p => ({ ...p, level: parseInt(e.target.value) }))} className="flex-1 bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-[#aaa] focus:outline-none">{SKILL_LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
+                <select value={newSkill.level} onChange={e => setNewSkill(p => ({ ...p, level: parseInt(e.target.value) }))} className="flex-1 bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-sm text-[#bbb] focus:outline-none">{SKILL_LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
                 <Input value={newSkill.developingHabit} onChange={e => setNewSkill(p => ({ ...p, developingHabit: e.target.value }))} placeholder="Developing via habit" className="flex-1" />
               </div>
               <Btn onClick={() => { if (!newSkill.name.trim()) return; const sector = newSkill.sector === "auto" ? classifyHabit(newSkill.name) : newSkill.sector; setSkills(p => [...p, { ...newSkill, id: genId(), sector }]); execute(`💡 Asset:${newSkill.name}`, 2, "skill"); setNewSkill({ name: "", level: 0, category: "Technical", sector: "skills", developingHabit: "" }); }} className="w-full"><Plus size={15} />Add Skill</Btn>
@@ -1614,31 +1750,31 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           </Card>
 
           <Card>
-            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><AlertTriangle size={16} className="text-[#777]" />Weaknesses<span className="text-[#777] font-normal">— Debt</span></h2><InfoTooltip feature="weaknesses" /></div>
+            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-white text-sm flex items-center gap-2"><AlertTriangle size={16} className="text-[#999]" />Weaknesses<span className="text-[#999] font-normal">— Debt</span></h2><InfoTooltip feature="weaknesses" /></div>
             <div className="space-y-3 mb-5">
               {weaknesses.length === 0 && <p className="text-[#4a4a4a] text-sm text-center py-4">No weaknesses logged.</p>}
               {weaknesses.map(w => (
                 <div key={w.id} className="bg-red-950/5 border border-red-950/20 rounded-xl p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <div><p className="font-medium text-[#ddd] text-sm">{w.name}</p><p className="text-xs text-[#777]">{w.category}·{DEBT_SEVERITY[w.severity]}</p></div>
+                    <div><p className="font-medium text-[#f0f0f0] text-sm">{w.name}</p><p className="text-xs text-[#999]">{w.category}·{DEBT_SEVERITY[w.severity]}</p></div>
                     <div className="flex gap-2">
                       <span className="text-xs font-bold text-red-800 bg-red-950/30 px-2 py-1 rounded-lg">−{(w.severity + 1) * 8}pts</span>
                       <button onClick={() => { if (w.severity > 0) { setWeaknesses(p => p.map(x => x.id === w.id ? { ...x, severity: x.severity - 1 } : x)); execute(`Improved:${w.name}`, 1.5, "debt"); } else { setWeaknesses(p => p.filter(x => x.id !== w.id)); execute(`✅ Overcame:${w.name}`, 3, "debt"); } }} className="text-[10px] bg-green-950/20 border border-green-900/30 px-2 py-1 rounded-lg text-green-700 hover:text-green-500 transition-all">Improve</button>
-                      <button onClick={() => setWeaknesses(p => p.filter(x => x.id !== w.id))} className="text-[#444] hover:text-red-600"><X size={13} /></button>
+                      <button onClick={() => setWeaknesses(p => p.filter(x => x.id !== w.id))} className="text-[#666] hover:text-red-600"><X size={13} /></button>
                     </div>
                   </div>
-                  <div className="flex gap-1">{DEBT_SEVERITY.map((_, i) => <div key={i} className={`flex-1 h-1 rounded-full ${i <= w.severity ? "bg-red-900" : "bg-[#141414]"}`} />)}</div>
+                  <div className="flex gap-1">{DEBT_SEVERITY.map((_, i) => <div key={i} className={`flex-1 h-1 rounded-full ${i <= w.severity ? "bg-red-900" : "bg-[#0a0a0a]"}`} />)}</div>
                   {w.plan && <p className="text-[10px] text-[#4a4a4a] mt-2">📋{w.plan}</p>}
                 </div>
               ))}
             </div>
-            <div className="border-t border-[#252525] pt-4 space-y-2">
+            <div className="border-t border-[#2a2a2a] pt-4 space-y-2">
               <div className="flex gap-2 flex-wrap">
                 <Input value={newDebt.name} onChange={e => setNewDebt(p => ({ ...p, name: e.target.value }))} placeholder="Weakness name" className="flex-1 min-w-32" />
-                <select value={newDebt.category} onChange={e => setNewDebt(p => ({ ...p, category: e.target.value }))} className="bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-xs text-[#aaa] focus:outline-none">{["Mental", "Social", "Physical", "Academic", "Financial", "Emotional"].map(c => <option key={c}>{c}</option>)}</select>
+                <select value={newDebt.category} onChange={e => setNewDebt(p => ({ ...p, category: e.target.value }))} className="bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-xs text-[#bbb] focus:outline-none">{["Mental", "Social", "Physical", "Academic", "Financial", "Emotional"].map(c => <option key={c}>{c}</option>)}</select>
               </div>
               <div className="flex gap-2">
-                <select value={newDebt.severity} onChange={e => setNewDebt(p => ({ ...p, severity: parseInt(e.target.value) }))} className="flex-1 bg-[#181818] border border-[#2e2e2e] rounded-xl px-3 py-2.5 text-sm text-[#aaa] focus:outline-none">{DEBT_SEVERITY.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
+                <select value={newDebt.severity} onChange={e => setNewDebt(p => ({ ...p, severity: parseInt(e.target.value) }))} className="flex-1 bg-[#141414] border border-[#333] rounded-xl px-3 py-2.5 text-sm text-[#bbb] focus:outline-none">{DEBT_SEVERITY.map((l, i) => <option key={l} value={i}>{l}</option>)}</select>
                 <Input value={newDebt.plan} onChange={e => setNewDebt(p => ({ ...p, plan: e.target.value }))} placeholder="Improvement plan" className="flex-1" />
               </div>
               <Btn variant="ghost" onClick={() => { if (!newDebt.name.trim()) return; setWeaknesses(p => [...p, { ...newDebt, id: genId() }]); execute(`⚠️ Debt:${newDebt.name}`, -(newDebt.severity + 1) * 1.5, "debt"); setNewDebt({ name: "", severity: 0, category: "Mental", plan: "" }); }} className="w-full"><Plus size={15} />Log Weakness</Btn>
@@ -1646,20 +1782,20 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           </Card>
 
           <Card>
-            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Target size={16} className="text-[#777]" />Goals<span className="text-[#777] font-normal">— Pending IPOs</span></h2><InfoTooltip feature="goals" /></div>
+            <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-white text-sm flex items-center gap-2"><Target size={16} className="text-[#999]" />Goals<span className="text-[#999] font-normal">— Pending IPOs</span></h2><InfoTooltip feature="goals" /></div>
             <div className="space-y-2 mb-4">
               {goals.map(g => (
-                <div key={g.id} className={`border rounded-xl px-4 py-3 flex items-center justify-between ${g.achieved ? "border-green-900/20 bg-green-950/5" : "border-[#252525] bg-[#141414]"}`}>
-                  <div><p className="text-sm text-[#ddd]">{g.title}</p><p className="text-xs text-[#777]">{g.sector}·+{g.reward}% on achieve</p></div>
+                <div key={g.id} className={`border rounded-xl px-4 py-3 flex items-center justify-between ${g.achieved ? "border-green-900/20 bg-green-950/5" : "border-[#2a2a2a] bg-[#0a0a0a]"}`}>
+                  <div><p className="text-sm text-[#f0f0f0]">{g.title}</p><p className="text-xs text-[#999]">{g.sector}·+{g.reward}% on achieve</p></div>
                   <div className="flex gap-2">
-                    {!g.achieved && <button onClick={() => { setGoals(p => p.map(x => x.id === g.id ? { ...x, achieved: true } : x)); execute(`🏆 IPO:${g.title}`, g.reward, "goal"); }} className="text-[10px] bg-[#1e1e1e] border border-[#2e2e2e] px-3 py-1.5 rounded-lg text-[#777] hover:text-green-500 hover:border-green-900 transition-all">Achieve 🚀</button>}
+                    {!g.achieved && <button onClick={() => { setGoals(p => p.map(x => x.id === g.id ? { ...x, achieved: true } : x)); execute(`🏆 IPO:${g.title}`, g.reward, "goal"); }} className="text-[10px] bg-[#161616] border border-[#333] px-3 py-1.5 rounded-lg text-[#999] hover:text-green-500 hover:border-green-900 transition-all">Achieve 🚀</button>}
                     {g.achieved && <span className="text-xs text-green-700">✓ Listed</span>}
-                    <button onClick={() => setGoals(p => p.filter(x => x.id !== g.id))} className="text-[#444] hover:text-red-600"><X size={13} /></button>
+                    <button onClick={() => setGoals(p => p.filter(x => x.id !== g.id))} className="text-[#666] hover:text-red-600"><X size={13} /></button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2 flex-wrap border-t border-[#252525] pt-4">
+            <div className="flex gap-2 flex-wrap border-t border-[#2a2a2a] pt-4">
               <Input value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} placeholder="Goal title" className="flex-1 min-w-32" />
               <Input type="number" value={newGoal.reward} onChange={e => setNewGoal(p => ({ ...p, reward: parseFloat(e.target.value) || 0 }))} placeholder="% reward" className="w-20 font-mono" />
               <Btn onClick={() => { if (!newGoal.title.trim()) return; setGoals(p => [...p, { ...newGoal, id: genId(), achieved: false }]); setNewGoal({ title: "", sector: "academics", reward: 0 }); }}><Plus size={15} /></Btn>
@@ -1673,13 +1809,13 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           {/* Add YouTube */}
           <Card>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2">
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
                 Interests
               </h2>
-              <span className="text-[9px] text-[#555] font-mono px-2 py-0.5 border border-[#252525] rounded-lg">AI tagged</span>
+              <span className="text-[9px] text-[#777] font-mono px-2 py-0.5 border border-[#2a2a2a] rounded-lg">AI tagged</span>
             </div>
-            <p className="text-xs text-[#555] mb-3">Paste any YouTube link — AI extracts your interest topics and maps connections.</p>
+            <p className="text-xs text-[#777] mb-3">Paste any YouTube link — AI extracts your interest topics and maps connections.</p>
             <div className="flex gap-2">
               <Input
                 value={ytUrl}
@@ -1699,111 +1835,67 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <div className="flex gap-1">
                   {[0,1,2].map(i => <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#444] animate-bounce" style={{animationDelay:`${i*0.15}s`}} />)}
                 </div>
-                <p className="text-[10px] text-[#555]">Fetching video · extracting topics with AI…</p>
+                <p className="text-[10px] text-[#777]">Fetching video · extracting topics with AI…</p>
               </div>
             )}
           </Card>
 
           {/* Interest cards */}
           {interests.length === 0 && !ytLoading && (
-            <div className="text-center py-12 text-[#444]">
+            <div className="text-center py-12 text-[#666]">
               <div className="text-4xl mb-3 opacity-30">🎯</div>
               <p className="text-sm">Add YouTube videos to map your interests.</p>
-              <p className="text-xs text-[#333] mt-1">Topics are auto-extracted and connected.</p>
+              <p className="text-xs text-[#555] mt-1">Topics are auto-extracted and connected.</p>
             </div>
           )}
 
           {interests.map(item => (
-            <div key={item.id} className="bg-[#141414] border border-[#252525] rounded-2xl overflow-hidden">
+            <div key={item.id} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-2xl overflow-hidden">
               <div className="flex gap-3 p-4">
                 <img
                   src={item.thumbnail}
-                  className="w-24 h-16 object-cover rounded-xl flex-shrink-0 bg-[#1e1e1e]"
+                  className="w-24 h-16 object-cover rounded-xl flex-shrink-0 bg-[#161616]"
                   alt=""
                   onError={e => { e.target.style.display = "none"; }}
                 />
                 <div className="flex-1 min-w-0">
                   <a href={item.url} target="_blank" rel="noreferrer"
-                    className="text-sm font-semibold text-[#ddd] hover:text-white leading-snug block mb-1 line-clamp-2">
+                    className="text-sm font-semibold text-[#f0f0f0] hover:text-white leading-snug block mb-1 line-clamp-2">
                     {item.title}
                   </a>
-                  <p className="text-[10px] text-[#555] mb-2 font-mono">{item.channel} · {item.addedDate}</p>
+                  <p className="text-[10px] text-[#777] mb-2 font-mono">{item.channel} · {item.addedDate}</p>
                   <div className="flex flex-wrap gap-1">
                     {item.topics.map(t => (
-                      <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] text-[#777] font-mono">{t}</span>
+                      <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#161616] border border-[#2a2a2a] text-[#999] font-mono">{t}</span>
                     ))}
                   </div>
                 </div>
-                <button onClick={() => setInterests(p => p.filter(x => x.id !== item.id))} className="text-[#333] hover:text-red-500 self-start flex-shrink-0"><X size={13} /></button>
+                <button onClick={() => setInterests(p => p.filter(x => x.id !== item.id))} className="text-[#555] hover:text-red-500 self-start flex-shrink-0"><X size={13} /></button>
               </div>
             </div>
           ))}
 
-          {/* Interest Canvas */}
+          {/* Interest Web — animated force canvas */}
           {interests.length > 1 && (() => {
             const allTopics = [...new Set(interests.flatMap(i => i.topics))];
-            const COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc15','#38bdf8','#fb923c','#4ade80','#e879f9','#fbbf24','#22d3ee','#f87171','#86efac','#c084fc'];
             const freq = {};
             interests.forEach(i => i.topics.forEach(t => { freq[t] = (freq[t]||0)+1; }));
-
-            const W = 520, H = 320;
-            // golden-angle spiral gives natural cluster-like spread
-            const pos = {};
-            allTopics.forEach((t, i) => {
-              const a = i * 2.399;
-              const r = 40 + (i % 4) * 38 + Math.floor(i / 4) * 14;
-              const cx = W/2 + r * Math.cos(a), cy = H/2 + r * Math.sin(a);
-              pos[t] = { x: Math.max(30, Math.min(W-60, cx)), y: Math.max(18, Math.min(H-18, cy)) };
-            });
-
             const edgeSet = new Set(); const edges = [];
             interests.forEach(item => {
               for (let a = 0; a < item.topics.length; a++) for (let b = a+1; b < item.topics.length; b++) {
                 const key = [item.topics[a], item.topics[b]].sort().join("|||");
-                if (!edgeSet.has(key) && pos[item.topics[a]] && pos[item.topics[b]]) {
-                  edgeSet.add(key); edges.push([item.topics[a], item.topics[b]]);
-                }
+                if (!edgeSet.has(key)) { edgeSet.add(key); edges.push([item.topics[a], item.topics[b]]); }
               }
             });
-
             return (
               <Card>
-                <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-1">
-                  <Layers size={14} className="text-[#777]" />Interest Canvas
-                  <span className="ml-auto text-[10px] text-[#555] font-mono font-normal">{allTopics.length} topics · {interests.length} videos</span>
+                <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-1">
+                  <Layers size={14} className="text-[#999]" />Interest Web
+                  <span className="ml-auto text-[10px] text-[#777] font-mono font-normal">{allTopics.length} topics · {interests.length} videos</span>
                 </h2>
-                <p className="text-[10px] text-[#555] mb-3">Connected topics come from the same video. Bigger node = more appearances.</p>
-                <div className="rounded-2xl overflow-hidden bg-[#060606] border border-[#1a1a1a]">
-                  <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
-                    {/* edges first — thin white lines like the reference */}
-                    {edges.map(([ta, tb], i) => (
-                      <line key={i}
-                        x1={pos[ta].x} y1={pos[ta].y}
-                        x2={pos[tb].x} y2={pos[tb].y}
-                        stroke="#ffffff" strokeWidth="0.6" strokeOpacity="0.1"
-                      />
-                    ))}
-                    {/* colored nodes + bright labels */}
-                    {allTopics.map((t, i) => {
-                      const p = pos[t];
-                      const color = COLORS[i % COLORS.length];
-                      const r = 4 + (freq[t]||1) * 2.5;
-                      return (
-                        <g key={t}>
-                          <circle cx={p.x} cy={p.y} r={r + 8} fill={color} opacity="0.07" />
-                          <circle cx={p.x} cy={p.y} r={r} fill={color} />
-                          <text
-                            x={p.x + r + 5}
-                            y={p.y + 4}
-                            fill="#e8e8e8"
-                            fontSize="9.5"
-                            fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-                            fontWeight="500"
-                          >{t}</text>
-                        </g>
-                      );
-                    })}
-                  </svg>
+                <p className="text-[10px] text-[#777] mb-3">Live physics — topics repel, shared videos pull them together.</p>
+                <div className="rounded-2xl overflow-hidden border border-[#222]">
+                  <ForceCanvas topics={allTopics} edges={edges} freq={freq} />
                 </div>
               </Card>
             );
@@ -1812,46 +1904,46 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         </>)}
 
         {view === "phases" && (<>
-          <div className="flex items-center gap-2 mb-1"><p className="text-xs text-[#666]">Life phases shape your historical chart curve.</p><InfoTooltip feature="phases" /></div>
+          <div className="flex items-center gap-2 mb-1"><p className="text-xs text-[#888]">Life phases shape your historical chart curve.</p><InfoTooltip feature="phases" /></div>
           {phases.map(ph => (
             <div key={ph.id} className={`${C.card} border rounded-2xl p-5`} style={{ borderColor: ph.color + "20" }}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{ph.emoji}</span>
-                  <div><p className="font-semibold text-[#ddd]">{ph.name}</p><p className="text-xs text-[#777]">{ph.start}→{ph.end || "Ongoing"}</p></div>
+                  <div><p className="font-semibold text-[#f0f0f0]">{ph.name}</p><p className="text-xs text-[#999]">{ph.start}→{ph.end || "Ongoing"}</p></div>
                   <span className="text-xs px-2 py-0.5 rounded-lg" style={{ backgroundColor: ph.color + "15", color: ph.color }}>{TREND_OPTIONS.find(t => t.value === ph.trend)?.label?.split(" ").slice(1).join(" ") || "Flat"}</span>
                 </div>
-                <button onClick={() => setPhases(p => p.filter(x => x.id !== ph.id))} className="text-[#444] hover:text-red-600"><Trash2 size={14} /></button>
+                <button onClick={() => setPhases(p => p.filter(x => x.id !== ph.id))} className="text-[#666] hover:text-red-600"><Trash2 size={14} /></button>
               </div>
-              {ph.desc && <p className="text-sm text-[#666] leading-relaxed mt-3 border-t border-[#252525] pt-3">{ph.desc}</p>}
+              {ph.desc && <p className="text-sm text-[#888] leading-relaxed mt-3 border-t border-[#2a2a2a] pt-3">{ph.desc}</p>}
             </div>
           ))}
           {phases.length === 0 && <p className="text-[#4a4a4a] text-sm text-center py-10">No phases yet.</p>}
-          <Card><p className="font-semibold text-[#ddd] text-sm mb-4">Add Phase</p><PhaseForm onAdd={ph => setPhases(p => [...p, ph])} /></Card>
+          <Card><p className="font-semibold text-[#f0f0f0] text-sm mb-4">Add Phase</p><PhaseForm onAdd={ph => setPhases(p => [...p, ph])} /></Card>
         </>)}
 
         {/* MORE */}
         {view === "more" && (<>
           <div className="flex gap-2 flex-wrap mb-2">
             {[["heatmap", "📅 Heatmap"], ["achievements", "🏆 Achievements"], ["capsule", "⏰ Capsule"]].map(([id, l]) => (
-              <button key={id} onClick={() => setMoreTab(id)} className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${moreTab === id ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#181818] text-[#666] border-[#2e2e2e] hover:border-[#333]"}`}>{l}</button>
+              <button key={id} onClick={() => setMoreTab(id)} className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${moreTab === id ? "bg-[#e8e8e8] text-[#080808] border-[#e8e8e8]" : "bg-[#141414] text-[#888] border-[#333] hover:border-[#333]"}`}>{l}</button>
             ))}
           </div>
           {moreTab === "heatmap" && (
             <Card>
-              <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Calendar size={16} className="text-[#777]" />Activity Heatmap {new Date().getFullYear()}</h2><InfoTooltip feature="heatmap" /></div>
+              <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-white text-sm flex items-center gap-2"><Calendar size={16} className="text-[#999]" />Activity Heatmap {new Date().getFullYear()}</h2><InfoTooltip feature="heatmap" /></div>
               <Heatmap orderBook={orderBook} />
             </Card>
           )}
           {moreTab === "achievements" && (
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2 mb-4"><Award size={16} className="text-[#777]" />Achievements</h2>
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-4"><Award size={16} className="text-[#999]" />Achievements</h2>
               <div className="grid grid-cols-2 gap-3">
                 {ACHIEVEMENTS.map(a => { const unlocked = unlockedAch.includes(a.id); return (
-                  <div key={a.id} className={`border rounded-xl p-4 transition-all ${unlocked ? "border-[#2a2a2a] bg-[#181818]" : "border-[#252525] bg-[#141414] opacity-40"}`}>
+                  <div key={a.id} className={`border rounded-xl p-4 transition-all ${unlocked ? "border-[#2a2a2a] bg-[#141414]" : "border-[#2a2a2a] bg-[#0a0a0a] opacity-40"}`}>
                     <div className="text-2xl mb-2">{unlocked ? a.icon : "🔒"}</div>
-                    <p className="text-xs font-semibold text-[#ddd]">{a.title}</p>
-                    <p className="text-[10px] text-[#777] mt-1">{a.desc}</p>
+                    <p className="text-xs font-semibold text-[#f0f0f0]">{a.title}</p>
+                    <p className="text-[10px] text-[#999] mt-1">{a.desc}</p>
                     {unlocked && <p className="text-[10px] text-green-700 mt-2">✓ Unlocked</p>}
                   </div>
                 ); })}
@@ -1860,8 +1952,8 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           )}
           {moreTab === "capsule" && (<>
             <Card>
-              <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-[#e8e8e8] text-sm flex items-center gap-2"><Moon size={16} className="text-[#777]" />Time Capsule</h2><InfoTooltip feature="capsule" /></div>
-              <p className="text-xs text-[#777] mb-4">Write a message to your future self. Unlocks on the date you choose.</p>
+              <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-white text-sm flex items-center gap-2"><Moon size={16} className="text-[#999]" />Time Capsule</h2><InfoTooltip feature="capsule" /></div>
+              <p className="text-xs text-[#999] mb-4">Write a message to your future self. Unlocks on the date you choose.</p>
               <div className="space-y-3">
                 <Textarea value={capsule.message} onChange={e => setCapsule(p => ({ ...p, message: e.target.value }))} placeholder="Dear future me…" className="w-full h-28" />
                 <Input type="date" min={today()} value={capsule.unlockDate} onChange={e => setCapsule(p => ({ ...p, unlockDate: e.target.value }))} className="w-full" />
@@ -1869,12 +1961,12 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               </div>
             </Card>
             {timeCapsules.map(c => (
-              <div key={c.id} className={`border rounded-2xl p-4 ${c.opened ? "border-[#252525] opacity-40" : "border-[#2e2e2e]"} bg-[#141414]`}>
+              <div key={c.id} className={`border rounded-2xl p-4 ${c.opened ? "border-[#2a2a2a] opacity-40" : "border-[#333]"} bg-[#0a0a0a]`}>
                 <div className="flex justify-between items-start">
-                  <div><p className="text-xs text-[#666]">Unlocks: {c.unlockDate}</p><p className="text-xs text-[#4a4a4a]">Written: {c.createdDate}</p></div>
-                  <button onClick={() => setTimeCapsules(p => p.filter(x => x.id !== c.id))} className="text-[#444] hover:text-red-600"><X size={13} /></button>
+                  <div><p className="text-xs text-[#888]">Unlocks: {c.unlockDate}</p><p className="text-xs text-[#4a4a4a]">Written: {c.createdDate}</p></div>
+                  <button onClick={() => setTimeCapsules(p => p.filter(x => x.id !== c.id))} className="text-[#666] hover:text-red-600"><X size={13} /></button>
                 </div>
-                {(c.opened || c.unlockDate <= today()) ? <p className="text-sm text-[#666] mt-3 leading-relaxed">{c.message}</p> : <p className="text-xs text-[#444] mt-3">🔒 Sealed until {c.unlockDate}</p>}
+                {(c.opened || c.unlockDate <= today()) ? <p className="text-sm text-[#888] mt-3 leading-relaxed">{c.message}</p> : <p className="text-xs text-[#666] mt-3">🔒 Sealed until {c.unlockDate}</p>}
               </div>
             ))}
           </>)}
@@ -1885,12 +1977,23 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
         {/* CHANGELOG */}
         {view === "changelog" && (
           <div className="-mx-4 -mt-2">
-            {/* ── Hero header — dithered dot gradient like reference image ── */}
-            <div className="relative overflow-hidden" style={{height:"180px"}}>
+            <style>{`
+              @keyframes dither-pan {
+                0%   { background-position: 0 0; }
+                100% { background-position: 72px 72px; }
+              }
+              @keyframes dither-pan2 {
+                0%   { background-position: 0 0; }
+                100% { background-position: -48px 48px; }
+              }
+            `}</style>
+            {/* ── Hero header — animated dithered dot gradient ── */}
+            <div className="relative overflow-hidden" style={{height:"200px"}}>
               {/* base gradient: deep blue → cyan */}
               <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0a0a1a 0%,#001a3a 30%,#003a6a 60%,#0077aa 100%)"}} />
-              {/* dot-pattern dither overlay — pure CSS SVG data-uri */}
-              <div className="absolute inset-0 opacity-60" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='0.9' fill='%2300aaff' opacity='0.5'/%3E%3C/svg%3E")`, backgroundSize:"6px 6px"}} />
+              {/* animated dither — two offset dot layers moving in opposite directions */}
+              <div className="absolute inset-0 opacity-55" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Ccircle cx='3' cy='3' r='1.1' fill='%2300bbff' opacity='0.6'/%3E%3C/svg%3E")`, backgroundSize:"6px 6px", animation:"dither-pan 4s linear infinite"}} />
+              <div className="absolute inset-0 opacity-30" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Ccircle cx='5' cy='5' r='1.4' fill='%2300eeff' opacity='0.5'/%3E%3C/svg%3E")`, backgroundSize:"10px 10px", animation:"dither-pan2 7s linear infinite"}} />
               {/* fade bottom to black */}
               <div className="absolute inset-0" style={{background:"linear-gradient(to bottom, transparent 30%, #0d0d0d 100%)"}} />
               <div className="relative px-5 pt-8 pb-0">
@@ -1921,7 +2024,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                   <div key={release.version} className="py-10 border-b border-[#1a1a1a] last:border-0">
                     {/* date + meta */}
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-sm font-medium text-[#666]">{release.date}</span>
+                      <span className="text-sm font-medium text-[#888]">{release.date}</span>
                       <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border ${
                         release.tag === "major" ? "border-violet-800/40 text-violet-400 bg-violet-950/30" :
                         release.tag === "fix"   ? "border-orange-800/40 text-orange-400 bg-orange-950/30" :
@@ -1930,15 +2033,15 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     </div>
 
                     {/* big title */}
-                    <h2 className="text-2xl font-semibold text-[#e8e8e8] mb-4 leading-snug">{release.title}</h2>
+                    <h2 className="text-2xl font-semibold text-white mb-4 leading-snug">{release.title}</h2>
 
                     {/* dark image card */}
-                    <div className="relative rounded-2xl overflow-hidden mb-5 border border-[#1e1e1e]" style={{height:"160px", background: grad}}>
+                    <div className="relative rounded-2xl overflow-hidden mb-5 border border-[#222]" style={{height:"160px", background: grad}}>
                       {/* dot dither layer */}
                       <div className="absolute inset-0 opacity-20" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='5'%3E%3Ccircle cx='2.5' cy='2.5' r='0.8' fill='%23ffffff'/%3E%3C/svg%3E")`, backgroundSize:"5px 5px"}} />
                       {/* centered version label */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[#333] text-lg font-bold font-mono tracking-widest">{release.version}: {release.title}</span>
+                        <span className="text-[#555] text-lg font-bold font-mono tracking-widest">{release.version}: {release.title}</span>
                       </div>
                       {/* bottom fade */}
                       <div className="absolute bottom-0 left-0 right-0 h-12" style={{background:"linear-gradient(to top, rgba(13,13,13,0.7), transparent)"}} />
@@ -1953,7 +2056,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                             c.type === "feature" ? "bg-green-950/40 text-green-400 border-green-900/30" :
                                                    "bg-blue-950/40 text-blue-400 border-blue-900/30"
                           }`}>{c.type === "fix" ? "FIX" : "NEW"}</span>
-                          <p className="text-sm text-[#aaa] leading-relaxed">{c.text}</p>
+                          <p className="text-sm text-[#bbb] leading-relaxed">{c.text}</p>
                         </div>
                       ))}
                     </div>
@@ -1962,7 +2065,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               })}
 
               <div className="py-6 text-center">
-                <p className="text-[10px] text-[#333] font-mono">entropyzero · {new Date().getFullYear()}</p>
+                <p className="text-[10px] text-[#555] font-mono">entropyzero · {new Date().getFullYear()}</p>
               </div>
             </div>
           </div>
@@ -1973,22 +2076,22 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
             {/* Google Account Card */}
             {user && (
               <Card>
-                <h2 className="font-semibold text-[#e8e8e8] text-sm mb-4 flex items-center gap-2">
+                <h2 className="font-semibold text-white text-sm mb-4 flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                   Google Account
                 </h2>
                 <div className="flex items-center gap-3 mb-4">
                   {user.photoURL
-                    ? <img src={user.photoURL} className="w-10 h-10 rounded-full border border-[#2e2e2e]" alt="avatar" />
-                    : <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#2e2e2e] flex items-center justify-center text-base">{user.displayName?.[0] || "?"}</div>
+                    ? <img src={user.photoURL} className="w-10 h-10 rounded-full border border-[#333]" alt="avatar" />
+                    : <div className="w-10 h-10 rounded-full bg-[#1e1e1e] border border-[#333] flex items-center justify-center text-base">{user.displayName?.[0] || "?"}</div>
                   }
                   <div>
-                    <p className="text-sm font-semibold text-[#e8e8e8]">{user.displayName || "—"}</p>
-                    <p className="text-xs text-[#777]">{user.email}</p>
+                    <p className="text-sm font-semibold text-white">{user.displayName || "—"}</p>
+                    <p className="text-xs text-[#999]">{user.email}</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center py-2 border-t border-[#252525]">
-                  <span className="text-xs text-[#666]">Cloud sync</span>
+                <div className="flex justify-between items-center py-2 border-t border-[#2a2a2a]">
+                  <span className="text-xs text-[#888]">Cloud sync</span>
                   <span className={`text-xs flex items-center gap-1.5 font-mono ${saving ? "text-yellow-500" : "text-green-600"}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${saving ? "bg-yellow-500 animate-pulse" : "bg-green-500"}`} />
                     {saving ? "Saving…" : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}` : "Live"}
@@ -1997,24 +2100,24 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               </Card>
             )}
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-4 flex items-center gap-2"><Settings size={15} className="text-[#777]" />Profile</h2>
+              <h2 className="font-semibold text-white text-sm mb-4 flex items-center gap-2"><Settings size={15} className="text-[#999]" />Profile</h2>
               {[["Name", config.name], ["Ticker", `$${ticker}`], ["Country", config.country], ["Currency", `${curr}·${CURRENCIES[config.country]?.code}`], ["IPO Price", `${curr}${fmt(config.startPrice)}`], ["Date of Birth", config.dob || "—"]].map(([k, v]) => (
-                <div key={k} className="flex justify-between items-center py-3 border-b border-[#252525] last:border-0">
-                  <span className="text-sm text-[#777]">{k}</span><span className="text-sm text-[#ddd]">{v}</span>
+                <div key={k} className="flex justify-between items-center py-3 border-b border-[#2a2a2a] last:border-0">
+                  <span className="text-sm text-[#999]">{k}</span><span className="text-sm text-[#f0f0f0]">{v}</span>
                 </div>
               ))}
             </Card>
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><Download size={15} className="text-[#777]" />Backup & Restore</h2>
-              <div className="flex justify-between items-center py-2 border-b border-[#252525] mb-3">
-                <span className="text-xs text-[#666]">Last cloud save</span>
+              <h2 className="font-semibold text-white text-sm mb-1 flex items-center gap-2"><Download size={15} className="text-[#999]" />Backup & Restore</h2>
+              <div className="flex justify-between items-center py-2 border-b border-[#2a2a2a] mb-3">
+                <span className="text-xs text-[#888]">Last cloud save</span>
                 <span className="text-xs font-mono text-[#888]">
                   {lastSaved ? lastSaved.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : saving ? "Saving…" : "Not yet saved"}
                 </span>
               </div>
               <div className="flex gap-2">
                 <Btn variant="ghost" className="flex-1" onClick={exportData}><Download size={15} />Export JSON</Btn>
-                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer bg-[#202020] border border-[#2e2e2e] text-[#aaa] hover:bg-[#1a1a1a] hover:text-[#e8e8e8]`}>
+                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer bg-[#1a1a1a] border border-[#333] text-[#bbb] hover:bg-[#111] hover:text-white`}>
                   <Upload size={15} />Import JSON
                   <input type="file" accept=".json" className="hidden" onChange={e => {
                     const f = e.target.files[0]; if (!f) return;
@@ -2048,19 +2151,19 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
               </div>
             </Card>
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-3 flex items-center gap-2">
+              <h2 className="font-semibold text-white text-sm mb-3 flex items-center gap-2">
                 <span className="text-base">🔌</span> Portfolio Widget
               </h2>
-              <p className="text-xs text-[#666] mb-4 leading-relaxed">
+              <p className="text-xs text-[#888] mb-4 leading-relaxed">
                 Embed your live life index chart on any website — your portfolio, Notion, GitHub profile, anywhere.
                 Your name, ticker, chart and stats are made publicly readable when enabled.
               </p>
 
               {/* Toggle */}
-              <div className="flex items-center justify-between bg-[#181818] border border-[#252525] rounded-xl px-4 py-3 mb-3">
+              <div className="flex items-center justify-between bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 mb-3">
                 <div>
-                  <p className="text-sm text-[#ddd] font-medium">Enable public widget</p>
-                  <p className="text-xs text-[#666] mt-0.5">{widgetEnabled ? "Syncing real chart data publicly" : "Widget is private"}</p>
+                  <p className="text-sm text-[#f0f0f0] font-medium">Enable public widget</p>
+                  <p className="text-xs text-[#888] mt-0.5">{widgetEnabled ? "Syncing real chart data publicly" : "Widget is private"}</p>
                 </div>
                 <button
                   onClick={async () => {
@@ -2103,7 +2206,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     setWidgetLoading(false);
                   }}
                   disabled={widgetLoading}
-                  className={`relative w-12 h-6 rounded-full transition-all duration-300 ${widgetEnabled ? "bg-green-600" : "bg-[#2a2a2a]"} disabled:opacity-50`}
+                  className={`relative w-12 h-6 rounded-full transition-all duration-300 ${widgetEnabled ? "bg-green-600" : "bg-[#222]"} disabled:opacity-50`}
                 >
                   {widgetLoading
                     ? <span className="absolute inset-0 flex items-center justify-center"><span className="w-3 h-3 border border-[#555] border-t-white rounded-full animate-spin" /></span>
@@ -2155,7 +2258,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     setWidgetLoading(false);
                   }}
                   disabled={widgetLoading}
-                  className="w-full text-xs text-[#666] border border-[#252525] rounded-xl py-2 hover:text-[#aaa] hover:border-[#333] transition-all mb-3 disabled:opacity-40"
+                  className="w-full text-xs text-[#888] border border-[#2a2a2a] rounded-xl py-2 hover:text-[#bbb] hover:border-[#333] transition-all mb-3 disabled:opacity-40"
                 >
                   {widgetLoading ? "Syncing…" : "↻ Force resync chart data"}
                 </button>
@@ -2176,27 +2279,27 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                       code: `https://entropyzero.vercel.app/widget.html?uid=${uid}`,
                     },
                   ].map(({ label, desc, code }) => (
-                    <div key={label} className="bg-[#141414] border border-[#252525] rounded-xl p-3">
+                    <div key={label} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-3">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-semibold text-[#aaa]">{label}</p>
+                        <p className="text-xs font-semibold text-[#bbb]">{label}</p>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(code);
                             setWidgetCopied(label);
                             setTimeout(() => setWidgetCopied(""), 2000);
                           }}
-                          className="text-[10px] px-2 py-1 rounded-lg bg-[#202020] border border-[#2e2e2e] text-[#777] hover:text-[#e8e8e8] hover:border-[#444] transition-all"
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-[#999] hover:text-white hover:border-[#444] transition-all"
                         >
                           {widgetCopied === label ? "✓ Copied!" : "Copy"}
                         </button>
                       </div>
-                      <p className="text-[10px] text-[#555] mb-2">{desc}</p>
-                      <code className="text-[9px] text-[#555] break-all leading-relaxed block font-mono">{code}</code>
+                      <p className="text-[10px] text-[#777] mb-2">{desc}</p>
+                      <code className="text-[9px] text-[#777] break-all leading-relaxed block font-mono">{code}</code>
                     </div>
                   ))}
 
-                  <div className="bg-[#181818] border border-[#252525] rounded-xl p-3">
-                    <p className="text-xs font-semibold text-[#aaa] mb-2">Preview</p>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3">
+                    <p className="text-xs font-semibold text-[#bbb] mb-2">Preview</p>
                     <iframe
                       src={`https://entropyzero.vercel.app/widget.html?uid=${uid}`}
                       width="100%"
@@ -2206,7 +2309,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     />
                   </div>
 
-                  <p className="text-[10px] text-[#555] leading-relaxed">
+                  <p className="text-[10px] text-[#777] leading-relaxed">
                     ⚠️ Widget data updates every time you save. Toggle off to remove public access instantly.
                   </p>
                 </div>
@@ -2214,8 +2317,8 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
             </Card>
 
             <Card>
-              <h2 className="font-semibold text-[#e8e8e8] text-sm mb-1 flex items-center gap-2"><AlertTriangle size={15} className="text-red-900" />Danger Zone</h2>
-              <p className="text-xs text-[#777] mb-4">Permanently delete all data and restart.</p>
+              <h2 className="font-semibold text-white text-sm mb-1 flex items-center gap-2"><AlertTriangle size={15} className="text-red-900" />Danger Zone</h2>
+              <p className="text-xs text-[#999] mb-4">Permanently delete all data and restart.</p>
               <Btn variant="ghost" className="w-full mb-2" onClick={() => {
                 if (window.confirm("Sign out of Google? You'll need to sign in again to access your data.")) {
                   signOut(auth);
@@ -2239,11 +2342,11 @@ const WelcomeSplash = ({ name }) => {
   const greeting = hour < 5 ? "It's the dead of night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "It's midnight";
   const emoji = hour < 5 ? "🌑" : hour < 12 ? "🌅" : hour < 17 ? "☀️" : hour < 21 ? "🌆" : "🌙";
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
       <div className="text-center">
         <div className="text-5xl mb-6 animate-pulse">{emoji}</div>
-        <p className="text-[#666] text-sm mb-2 tracking-widest uppercase">{greeting}</p>
-        <h1 className="text-4xl font-semibold text-[#e8e8e8] tracking-tight">{name}</h1>
+        <p className="text-[#888] text-sm mb-2 tracking-widest uppercase">{greeting}</p>
+        <h1 className="text-4xl font-semibold text-white tracking-tight">{name}</h1>
         <div className="mt-8 flex justify-center gap-1">
           {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#333] animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
         </div>
@@ -2254,15 +2357,15 @@ const WelcomeSplash = ({ name }) => {
 
 // ── Login Screen ─────────────────────────────────────────────────────────────
 const LoginScreen = ({ onLogin, loading }) => (
-  <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-6">
+  <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
     <div className="w-full max-w-sm text-center">
-      <div className="w-14 h-14 bg-[#1e1e1e] border border-[#2e2e2e] rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl">📈</div>
-      <h1 className="text-3xl font-semibold text-[#e8e8e8] tracking-tight mb-2">entropyzero</h1>
-      <p className="text-[#666] text-sm mb-10">Your life, quantified.</p>
+      <div className="w-14 h-14 bg-[#161616] border border-[#333] rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl">📈</div>
+      <h1 className="text-3xl font-semibold text-white tracking-tight mb-2">entropyzero</h1>
+      <p className="text-[#888] text-sm mb-10">Your life, quantified.</p>
       <button
         onClick={onLogin}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#333] text-[#ddd] hover:text-[#e8e8e8] rounded-2xl px-6 py-4 text-sm font-medium transition-all disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-[#161616] border border-[#333] hover:border-[#333] text-[#f0f0f0] hover:text-white rounded-2xl px-6 py-4 text-sm font-medium transition-all disabled:opacity-50"
       >
         {loading ? (
           <span className="animate-pulse">Signing in…</span>
@@ -2351,11 +2454,11 @@ export default function App() {
 
   if (appState === "loading") {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-3 animate-pulse">📈</div>
-          <p className="text-[#777] text-sm mb-1">entropyzero</p>
-          <p className="text-[#444] text-xs">{loginLoading ? "Signing in with Google…" : "Checking session…"}</p>
+          <p className="text-[#999] text-sm mb-1">entropyzero</p>
+          <p className="text-[#666] text-xs">{loginLoading ? "Signing in with Google…" : "Checking session…"}</p>
         </div>
       </div>
     );
@@ -2397,9 +2500,9 @@ export default function App() {
     <>
       <Onboarding key={key} onComplete={handleComplete} />
       <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50 px-6">
-        <div className="bg-[#1e1e1e] border border-[#2e2e2e] rounded-2xl px-5 py-4 flex flex-col items-center gap-3 shadow-2xl w-full max-w-sm">
-          <p className="text-xs text-[#666] text-center">Already have a backup? Skip onboarding.</p>
-          <label className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-[#2a2a2a] bg-[#202020] text-[#aaa] hover:text-[#ddd] hover:border-[#333] text-sm font-medium transition-all cursor-pointer ${importing ? "opacity-50 cursor-wait" : ""}`}>
+        <div className="bg-[#161616] border border-[#333] rounded-2xl px-5 py-4 flex flex-col items-center gap-3 shadow-2xl w-full max-w-sm">
+          <p className="text-xs text-[#888] text-center">Already have a backup? Skip onboarding.</p>
+          <label className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] text-[#bbb] hover:text-[#f0f0f0] hover:border-[#333] text-sm font-medium transition-all cursor-pointer ${importing ? "opacity-50 cursor-wait" : ""}`}>
             <Upload size={16} />{importing ? "Importing…" : "Import & Restore Backup"}
             <input type="file" accept=".json" className="hidden" onChange={handleDirectImport} disabled={importing} />
           </label>

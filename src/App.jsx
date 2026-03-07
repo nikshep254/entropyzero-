@@ -1082,6 +1082,31 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const saveTimerRef = useRef(null);
   const [saveError, setSaveError] = useState(null);
 
+  // ── Derived values needed by doSave ──────────────────────────────────────────
+  const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
+  const todayOrders = orderBook.filter(o => o.date === today());
+  const todayChange = todayOrders.reduce((s, o) => s + o.change, 0);
+  const allTime     = ((lifeIndex - config.startPrice) / config.startPrice) * 100;
+
+  const last7d = useMemo(() => {
+    const c = chartData.filter(d => d.timestamp >= Date.now() - 7 * 86400000);
+    return c.length > 1 ? ((lifeIndex - c[0].value) / c[0].value) * 100 : 0;
+  }, [chartData, lifeIndex]);
+
+  const last30d = useMemo(() => {
+    const c = chartData.filter(d => d.timestamp >= Date.now() - 30 * 86400000);
+    return c.length > 1 ? ((lifeIndex - c[0].value) / c[0].value) * 100 : 0;
+  }, [chartData, lifeIndex]);
+
+  const streak = useMemo(() => {
+    let s = 0, d = new Date();
+    while (true) {
+      const ds = d.toISOString().split("T")[0];
+      if (orderBook.find(o => o.date === ds)) { s++; d.setDate(d.getDate() - 1); } else break;
+    }
+    return s;
+  }, [orderBook]);
+
   const doSave = useCallback(async () => {
     if (!uid) return;
     setSaving(true); setSaveError(null);
@@ -1132,29 +1157,7 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
     return doSave();
   }, [doSave]);
 
-  const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
-  const todayOrders = orderBook.filter(o => o.date === today());
-  const todayChange = todayOrders.reduce((s, o) => s + o.change, 0);
-  const allTime     = ((lifeIndex - config.startPrice) / config.startPrice) * 100;
-
-  const last7d = useMemo(() => {
-    const c = chartData.filter(d => d.timestamp >= Date.now() - 7 * 86400000);
-    return c.length > 1 ? ((lifeIndex - c[0].value) / c[0].value) * 100 : 0;
-  }, [chartData, lifeIndex]);
-
-  const last30d = useMemo(() => {
-    const c = chartData.filter(d => d.timestamp >= Date.now() - 30 * 86400000);
-    return c.length > 1 ? ((lifeIndex - c[0].value) / c[0].value) * 100 : 0;
-  }, [chartData, lifeIndex]);
-
-  const streak = useMemo(() => {
-    let s = 0, d = new Date();
-    while (true) {
-      const ds = d.toISOString().split("T")[0];
-      if (orderBook.find(o => o.date === ds)) { s++; d.setDate(d.getDate() - 1); } else break;
-    }
-    return s;
-  }, [orderBook]);
+  // (lifeIndex, streak, allTime moved before doSave — see above)
 
   const sectorScores = useMemo(() => {
     const scores = Object.fromEntries(SECTORS.map(s => [s.id, 50]));
@@ -2951,7 +2954,6 @@ export default function App() {
     );
   }
 
-  if (showSplash) return <WelcomeSplash name={splashName} />;
   const handleDirectImport = (e) => {
     const f = e.target.files[0]; if (!f) return;
     setImporting(true);
@@ -2980,6 +2982,8 @@ export default function App() {
     };
     r.readAsText(f); e.target.value = "";
   };
+
+  if (showSplash) return <WelcomeSplash name={splashName} />;
 
   if (appState === "welcome") return <WelcomeScreen onContinue={() => setAppState("onboarding")} onGoogleLogin={handleGoogleLogin} loginLoading={loginLoading} />;
 

@@ -40,9 +40,12 @@ async function loadAllData(uid) {
   } catch (e) { console.error("Load error:", e); return null; }
 }
 
+function stripUndefined(obj) {
+  return JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
+}
 async function saveAllData(uid, data) {
   if (!uid) return;
-  await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: data });
+  await setDoc(doc(db, "users", uid, "appdata", "main"), { payload: stripUndefined(data) });
 }
 
 async function loadCoachHistory(uid) {
@@ -86,7 +89,7 @@ async function saveLastWeeklyReport(uid, data) {
 
 async function publishPublicWidget(uid, data) {
   if (!uid) return;
-  await setDoc(doc(db, "public", uid), { ...data, lastUpdated: Date.now() });
+  await setDoc(doc(db, "public", uid), stripUndefined({ ...data, lastUpdated: Date.now() }));
 }
 
 async function unpublishPublicWidget(uid) {
@@ -1463,7 +1466,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
           <p className={`text-xs font-mono ${todayChange >= 0 ? "text-green-500" : "text-red-500"}`}>{todayChange >= 0 ? "+" : ""}{fmt(todayChange)}% today</p>
           <div className="flex items-center gap-2 justify-end mt-1">
             {saveError
-              ? <><span className="w-1.5 h-1.5 rounded-full bg-red-500" /><span className="text-[9px] text-red-500 font-mono" title={saveError}>save failed</span></>
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-red-500" /><span className="text-[9px] text-red-500 font-mono cursor-help" title={saveError}>⚠ {saveError?.includes("permission") ? "permission denied" : saveError?.includes("offline") || saveError?.includes("network") ? "offline" : "save failed"}</span></>
               : saving
               ? <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] text-yellow-600 font-mono">saving…</span></>
               : lastSaved

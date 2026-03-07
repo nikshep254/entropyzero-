@@ -2100,12 +2100,7 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                     } catch(e) {
                       const isPerm = e.code === "permission-denied" || (e.message||"").includes("permission") || (e.message||"").includes("Firestore");
                       alert(isPerm
-                        ? "Permission denied — add this Firestore rule:
-
-match /public/{userId} {
-  allow read: if true;
-  allow write: if request.auth.uid == userId;
-}"
+                        ? "Permission denied — add this Firestore rule:\n\nmatch /public/{userId} {\n  allow read: if true;\n  allow write: if request.auth.uid == userId;\n}"
                         : "Error: " + e.message);
                     }
                   }}

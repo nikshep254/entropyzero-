@@ -662,154 +662,234 @@ const CANVAS_COLORS = ['#60a5fa','#f97316','#a78bfa','#34d399','#f472b6','#facc1
 const ForceCanvas = ({ topics, edges, freq, height = 320 }) => {
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
-  const stateRef  = useRef({ nodes: [], tick: 0 });
+  const simRef    = useRef({
+    nodes: [], frame: 0,
+    drag: null,          // { node, offX, offY }
+    clicked: null,       // { node, at }  — bright glow flash
+    dpr: 1, W: 0, H: 0,
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || topics.length === 0) return;
+    cancelAnimationFrame(animRef.current);
 
-    // Wait one frame so offsetWidth is measured after layout
-    const setup = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const W = canvas.offsetWidth  || 480;
-      const H = canvas.offsetHeight || height;
-      canvas.width  = W * dpr;
-      canvas.height = H * dpr;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
+    const dpr = window.devicePixelRatio || 1;
+    const W   = canvas.offsetWidth  || 480;
+    const H   = canvas.offsetHeight || height;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    Object.assign(simRef.current, { dpr, W, H });
 
-      // Seed nodes in a tight cluster near center so spring forces spread them naturally
-      stateRef.current.nodes = topics.map((t, i) => {
-        const a = i * 2.399;
-        const r = 30 + (i % 3) * 22 + Math.floor(i / 3) * 10;
-        return {
-          id: t,
-          x:  W/2 + r * Math.cos(a) + (Math.random()-0.5)*8,
-          y:  H/2 + r * Math.sin(a) + (Math.random()-0.5)*8,
-          vx: (Math.random()-0.5)*1.2,
-          vy: (Math.random()-0.5)*1.2,
-          r:  4 + (freq[t]||1) * 2.8,
-          color: CANVAS_COLORS[i % CANVAS_COLORS.length],
-        };
-      });
-      stateRef.current.tick = 0;
-
-      const MARGIN = 14; // keep nodes away from edges
-      let frameCount = 0;
-
-      const tick = () => {
-        frameCount++;
-        const { nodes } = stateRef.current;
-        const nm = {};
-        nodes.forEach(n => { nm[n.id] = n; });
-
-        // Temperature cooling — start lively, settle gently
-        const temp = Math.max(0.12, 1 - frameCount / 320);
-
-        // Repulsion
-        for (let i = 0; i < nodes.length; i++) {
-          const a = nodes[i];
-          // Center gravity (weak)
-          a.vx += (W/2 - a.x) * 0.0012;
-          a.vy += (H/2 - a.y) * 0.0012;
-          for (let j = i+1; j < nodes.length; j++) {
-            const b = nodes[j];
-            const dx = a.x - b.x, dy = a.y - b.y;
-            const dist2 = dx*dx + dy*dy || 0.01;
-            const dist  = Math.sqrt(dist2);
-            const f = Math.min(900, 1600 / dist2);
-            const fx = dx/dist * f, fy = dy/dist * f;
-            a.vx += fx; a.vy += fy;
-            b.vx -= fx; b.vy -= fy;
-          }
-        }
-        // Spring edges — rest length scales with canvas
-        const restLen = Math.min(W, H) * 0.28;
-        edges.forEach(([ta, tb]) => {
-          const a = nm[ta], b = nm[tb];
-          if (!a || !b) return;
-          const dx = b.x-a.x, dy = b.y-a.y;
-          const dist = Math.sqrt(dx*dx+dy*dy) || 1;
-          const f = (dist - restLen) * 0.032;
-          const fx = dx/dist*f, fy = dy/dist*f;
-          a.vx += fx; a.vy += fy;
-          b.vx -= fx; b.vy -= fy;
-        });
-        // Integrate + damp + clamp inside canvas
-        nodes.forEach(n => {
-          n.vx = (n.vx * 0.82) * temp + n.vx * (1-temp) * 0.95;
-          n.vy = (n.vy * 0.82) * temp + n.vy * (1-temp) * 0.95;
-          n.x = Math.max(n.r+MARGIN, Math.min(W-n.r-MARGIN, n.x + n.vx));
-          n.y = Math.max(n.r+MARGIN, Math.min(H-n.r-MARGIN, n.y + n.vy));
-        });
-
-        // ── DRAW ──
-        ctx.clearRect(0, 0, W, H);
-
-        // Spider-web edges — with faint animated glow pulse
-        const pulse = 0.08 + 0.06 * Math.sin(frameCount * 0.04);
-        edges.forEach(([ta, tb]) => {
-          const a = nm[ta], b = nm[tb];
-          if (!a || !b) return;
-          // gradient along edge in node colors
-          const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-          grad.addColorStop(0, a.color + '33');
-          grad.addColorStop(1, b.color + '33');
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 0.8 + pulse;
-          ctx.stroke();
-        });
-
-        // Nodes
-        nodes.forEach(n => {
-          // outer glow
-          const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 2.8);
-          grd.addColorStop(0, n.color + '30');
-          grd.addColorStop(1, 'transparent');
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * 2.8, 0, Math.PI*2);
-          ctx.fillStyle = grd;
-          ctx.fill();
-
-          // filled circle
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
-          ctx.fillStyle = n.color;
-          ctx.fill();
-
-          // label — always inside canvas: flip to left if near right edge
-          const label = n.id;
-          ctx.font = '500 9.5px -apple-system,BlinkMacSystemFont,sans-serif';
-          const tw = ctx.measureText(label).width;
-          const lx = (n.x + n.r + 5 + tw > W - 4)
-            ? n.x - n.r - 6 - tw   // flip left
-            : n.x + n.r + 5;
-          const ly = n.y + 3.5;
-          ctx.fillStyle = '#000';
-          ctx.fillText(label, lx+0.5, ly+0.5);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillText(label, lx, ly);
-        });
-
-        animRef.current = requestAnimationFrame(tick);
+    // Seed nodes spread across canvas with light random velocity
+    simRef.current.nodes = topics.map((t, i) => {
+      const a = i * 2.399;
+      const r = 50 + (i % 4) * 36 + Math.floor(i / 4) * 18;
+      return {
+        id: t,
+        x:  W/2 + r * Math.cos(a) + (Math.random()-0.5)*14,
+        y:  H/2 + r * Math.sin(a) + (Math.random()-0.5)*14,
+        vx: (Math.random()-0.5)*0.9,
+        vy: (Math.random()-0.5)*0.9,
+        r:  5 + (freq[t]||1) * 2.6,
+        color: CANVAS_COLORS[i % CANVAS_COLORS.length],
+        pinned: false,
       };
+    });
+    simRef.current.frame = 0;
 
-      cancelAnimationFrame(animRef.current);
+    const MARGIN = 18;
+    const restLen = Math.min(W, H) * 0.30;
+
+    const tick = () => {
+      simRef.current.frame++;
+      const f = simRef.current.frame;
+      const { nodes, drag } = simRef.current;
+      const nm = {};
+      nodes.forEach(n => { nm[n.id] = n; });
+
+      nodes.forEach(n => {
+        if (n.pinned || drag?.node === n) return;
+
+        // Soft center gravity — keeps graph from drifting off edge
+        n.vx += (W/2 - n.x) * 0.0010;
+        n.vy += (H/2 - n.y) * 0.0010;
+
+        // Tiny perpetual wander — nodes never fully stop
+        n.vx += (Math.random()-0.5) * 0.04;
+        n.vy += (Math.random()-0.5) * 0.04;
+      });
+
+      // Pairwise repulsion
+      for (let i=0; i<nodes.length; i++) {
+        for (let j=i+1; j<nodes.length; j++) {
+          const a=nodes[i], b=nodes[j];
+          if ((drag?.node===a) || (drag?.node===b)) continue;
+          const dx=a.x-b.x, dy=a.y-b.y;
+          const d2=dx*dx+dy*dy||0.01, d=Math.sqrt(d2);
+          const force=Math.min(1200, 2200/d2);
+          const fx=dx/d*force, fy=dy/d*force;
+          a.vx+=fx; a.vy+=fy;
+          b.vx-=fx; b.vy-=fy;
+        }
+      }
+
+      // Spring edges
+      edges.forEach(([ta, tb]) => {
+        const a=nm[ta], b=nm[tb];
+        if (!a||!b||drag?.node===a||drag?.node===b) return;
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const d=Math.sqrt(dx*dx+dy*dy)||1;
+        const f=(d-restLen)*0.025;
+        const fx=dx/d*f, fy=dy/d*f;
+        a.vx+=fx; a.vy+=fy;
+        b.vx-=fx; b.vy-=fy;
+      });
+
+      // Integrate — damping is gentle so motion persists
+      nodes.forEach(n => {
+        if (drag?.node===n) return;
+        n.vx *= 0.88; n.vy *= 0.88;
+        // cap max speed
+        const spd = Math.sqrt(n.vx*n.vx+n.vy*n.vy);
+        if (spd > 3.5) { n.vx=n.vx/spd*3.5; n.vy=n.vy/spd*3.5; }
+        n.x = Math.max(n.r+MARGIN, Math.min(W-n.r-MARGIN, n.x+n.vx));
+        n.y = Math.max(n.r+MARGIN, Math.min(H-n.r-MARGIN, n.y+n.vy));
+        // bounce off walls
+        if (n.x<=n.r+MARGIN||n.x>=W-n.r-MARGIN) n.vx*=-0.6;
+        if (n.y<=n.r+MARGIN||n.y>=H-n.r-MARGIN) n.vy*=-0.6;
+      });
+
+      // ── DRAW ──
+      ctx.clearRect(0, 0, W, H);
+
+      // Edge glow pulse
+      const pulse = 0.10 + 0.07 * Math.sin(f * 0.035);
+
+      edges.forEach(([ta, tb]) => {
+        const a=nm[ta], b=nm[tb];
+        if (!a||!b) return;
+        const grad = ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+        grad.addColorStop(0, a.color+'2e');
+        grad.addColorStop(1, b.color+'2e');
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=grad;
+        ctx.lineWidth=0.7+pulse;
+        ctx.stroke();
+      });
+
+      const now = Date.now();
+      nodes.forEach(n => {
+        const isDragged  = drag?.node===n;
+        const clickedAge = simRef.current.clicked?.node===n ? now - simRef.current.clicked.at : Infinity;
+        const glowFactor = isDragged ? 2.2
+          : clickedAge < 800 ? 1.5 + 2.0 * Math.max(0, 1 - clickedAge/800)
+          : 1.0;
+
+        // big glow halo
+        const glowR = n.r * (2.6 + glowFactor * 1.4);
+        const grd = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,glowR);
+        const alpha = isDragged ? '55' : clickedAge<800 ? 'aa' : '2a';
+        grd.addColorStop(0, n.color+alpha);
+        grd.addColorStop(1, 'transparent');
+        ctx.beginPath(); ctx.arc(n.x,n.y,glowR,0,Math.PI*2);
+        ctx.fillStyle=grd; ctx.fill();
+
+        // node dot
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.r*(isDragged?1.25:1),0,Math.PI*2);
+        ctx.fillStyle=n.color; ctx.fill();
+
+        // label
+        ctx.font='500 9.5px -apple-system,BlinkMacSystemFont,sans-serif';
+        const label=n.id, tw=ctx.measureText(label).width;
+        const lx=(n.x+n.r+5+tw>W-4) ? n.x-n.r-6-tw : n.x+n.r+5;
+        const ly=n.y+3.5;
+        ctx.fillStyle='rgba(0,0,0,0.7)';
+        ctx.fillText(label,lx+0.6,ly+0.6);
+        ctx.fillStyle=isDragged||clickedAge<600 ? '#fff' : '#cccccc';
+        ctx.fillText(label,lx,ly);
+      });
+
       animRef.current = requestAnimationFrame(tick);
     };
 
-    const raf = requestAnimationFrame(setup);
-    return () => { cancelAnimationFrame(raf); cancelAnimationFrame(animRef.current); };
+    animRef.current = requestAnimationFrame(tick);
+
+    // ── Pointer events (mouse + touch) ─────────────────────────────
+    const hitTest = (cx, cy) => {
+      const { nodes, dpr } = simRef.current;
+      const px=cx/dpr, py=cy/dpr;
+      // find closest node within 2.5× radius
+      let best=null, bestD=Infinity;
+      nodes.forEach(n => {
+        const d=Math.hypot(n.x-px, n.y-py);
+        if (d < Math.max(n.r*2.5, 18) && d<bestD) { best=n; bestD=d; }
+      });
+      return best;
+    };
+
+    const getXY = e => {
+      const rect=canvas.getBoundingClientRect();
+      const src=e.touches?.[0]||e;
+      return [(src.clientX-rect.left)*dpr, (src.clientY-rect.top)*dpr];
+    };
+
+    const onDown = e => {
+      e.preventDefault();
+      const [cx,cy]=getXY(e);
+      const node=hitTest(cx,cy);
+      if (!node) return;
+      simRef.current.drag = { node, offX:node.x-cx/dpr, offY:node.y-cy/dpr };
+      simRef.current.clicked = { node, at: Date.now() };
+      node.vx=0; node.vy=0;
+    };
+    const onMove = e => {
+      e.preventDefault();
+      const { drag } = simRef.current;
+      if (!drag) return;
+      const [cx,cy]=getXY(e);
+      const { W, H } = simRef.current;
+      drag.node.x = Math.max(drag.node.r+MARGIN, Math.min(W-drag.node.r-MARGIN, cx/dpr+drag.offX));
+      drag.node.y = Math.max(drag.node.r+MARGIN, Math.min(H-drag.node.r-MARGIN, cy/dpr+drag.offY));
+      drag.node.vx=0; drag.node.vy=0;
+    };
+    const onUp = () => {
+      if (simRef.current.drag) {
+        // give released node a gentle kick
+        simRef.current.drag.node.vx=(Math.random()-0.5)*1.2;
+        simRef.current.drag.node.vy=(Math.random()-0.5)*1.2;
+        simRef.current.drag=null;
+      }
+    };
+
+    canvas.addEventListener('mousedown',  onDown, {passive:false});
+    canvas.addEventListener('mousemove',  onMove, {passive:false});
+    canvas.addEventListener('mouseup',    onUp);
+    canvas.addEventListener('mouseleave', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove',  onMove, {passive:false});
+    canvas.addEventListener('touchend',   onUp);
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      canvas.removeEventListener('mousedown',  onDown);
+      canvas.removeEventListener('mousemove',  onMove);
+      canvas.removeEventListener('mouseup',    onUp);
+      canvas.removeEventListener('mouseleave', onUp);
+      canvas.removeEventListener('touchstart', onDown);
+      canvas.removeEventListener('touchmove',  onMove);
+      canvas.removeEventListener('touchend',   onUp);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topics.join('|'), edges.length, height]);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ width:'100%', height:`${height}px`, display:'block', background:'#050505' }}
+      style={{ width:'100%', height:`${height}px`, display:'block', background:'#050505', cursor:'grab', touchAction:'none' }}
     />
   );
 };
@@ -983,53 +1063,74 @@ const Dashboard = ({ config, onReset, initialData, uid, user }) => {
   const [saving, setSaving]               = useState(false);
   const [lastSaved, setLastSaved]         = useState(null);
 
-  // Save all state to persistent storage whenever anything changes (debounced 800ms)
+  // ── Save helpers ─────────────────────────────────────────────────────────────
+  // Edges: Firestore cannot store nested arrays. Use {a,b} map objects.
+  const buildEdgeMaps = (interestArr) => {
+    const es = new Set(), arr = [];
+    (interestArr||[]).forEach(it => {
+      const topics = it?.topics || [];
+      for (let a = 0; a < topics.length; a++) {
+        for (let b = a+1; b < topics.length; b++) {
+          const k = [topics[a],topics[b]].sort().join("|||");
+          if (!es.has(k)) { es.add(k); arr.push({ a: topics[a], b: topics[b] }); }
+        }
+      }
+    });
+    return arr;
+  };
+
   const saveTimerRef = useRef(null);
+  const [saveError, setSaveError] = useState(null);
+
+  const doSave = useCallback(async () => {
+    if (!uid) return;
+    setSaving(true); setSaveError(null);
+    try {
+      const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
+      const topicsForWidget = [...new Set((interests||[]).flatMap(i => i?.topics || []))];
+      const edgeMaps = buildEdgeMaps(interests);
+      const widgetBase = {
+        name: config.name,
+        ticker: config.ticker || config.name.slice(0,4).toUpperCase(),
+        currency: CURRENCIES[config.country]?.code || "USD",
+        startPrice: config.startPrice,
+        currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
+        allTime: allTimeVal,
+        streak,
+        chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
+      };
+      const interestPayload = interestEnabled
+        ? { interestTopics: topicsForWidget, interestEdges: edgeMaps, interestName: config.name }
+        : {};
+      const saves = [saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests })];
+      if (widgetEnabled) saves.push(publishPublicWidget(uid, { ...widgetBase, ...interestPayload }));
+      else if (interestEnabled) saves.push(publishPublicWidget(uid, { name: config.name, ...interestPayload }));
+      await Promise.all(saves);
+      setLastSaved(new Date());
+      if (widgetEnabled) setWidgetSyncStatus('ok');
+    } catch(e) {
+      console.error("Save error:", e);
+      setSaveError(e?.message || "Save failed");
+      if (widgetEnabled) { setWidgetSyncStatus('error'); setWidgetSyncMsg(e?.message || "Unknown error"); }
+    } finally {
+      setSaving(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled, interestEnabled, streak]);
+
   useEffect(() => {
     if (!uid) return;
-    // Debounce: cancel pending save, wait 800ms of inactivity before writing
     clearTimeout(saveTimerRef.current);
     setSaving(true);
-    saveTimerRef.current = setTimeout(async () => {
-    const allTimeVal = chartData.length > 1 ? ((chartData[chartData.length-1].value - config.startPrice) / config.startPrice) * 100 : 0;
-    const saveAll = saveAllData(uid, { config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests });
-    const topicsForWidget = [...new Set((interests||[]).flatMap(i => i.topics))];
-    const edgesForWidget = (() => {
-      const es = new Set(), arr = [];
-      (interests||[]).forEach(it => {
-        for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
-          const k = [it.topics[a],it.topics[b]].sort().join("|||");
-          if (!es.has(k)) { es.add(k); arr.push([it.topics[a],it.topics[b]]); }
-        }
-      });
-      return arr;
-    })();
-    const saveWidget = widgetEnabled
-      ? publishPublicWidget(uid, {
-          name: config.name,
-          ticker: config.ticker || config.name.slice(0,4).toUpperCase(),
-          currency: CURRENCIES[config.country]?.code || "USD",
-          startPrice: config.startPrice,
-          currentPrice: chartData[chartData.length-1]?.value || config.startPrice,
-          allTime: allTimeVal,
-          streak,
-          chartData: chartData.map(d => ({ date: d.date, value: parseFloat(d.value) })),
-          ...(interestEnabled ? { interestTopics: topicsForWidget, interestEdges: edgesForWidget, interestName: config.name } : {}),
-        })
-      : interestEnabled
-        ? publishPublicWidget(uid, { interestTopics: topicsForWidget, interestEdges: edgesForWidget, interestName: config.name, name: config.name })
-        : Promise.resolve();
-      try {
-        await Promise.all([saveAll, saveWidget]);
-        setLastSaved(new Date()); setSaving(false);
-        if (widgetEnabled) setWidgetSyncStatus('ok');
-      } catch(e) {
-        console.error("Save error:", e); setSaving(false);
-        if (widgetEnabled) { setWidgetSyncStatus('error'); setWidgetSyncMsg(e?.message || "Unknown error"); }
-      }
-    }, 800);
+    saveTimerRef.current = setTimeout(doSave, 1200);
     return () => clearTimeout(saveTimerRef.current);
-  }, [uid, config, chartData, orderBook, habits, phases, skills, weaknesses, pressReleases, moodLog, goals, unlockedAch, timeCapsules, interests, widgetEnabled, interestEnabled]);
+  }, [doSave]);
+
+  // Manual save — fires immediately, bypasses debounce
+  const manualSave = useCallback(() => {
+    clearTimeout(saveTimerRef.current);
+    return doSave();
+  }, [doSave]);
 
   const lifeIndex   = chartData[chartData.length - 1]?.value || config.startPrice;
   const todayOrders = orderBook.filter(o => o.date === today());
@@ -1357,13 +1458,21 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
             <InfoTooltip feature="lifeIndex" />
           </div>
           <p className={`text-xs font-mono ${todayChange >= 0 ? "text-green-500" : "text-red-500"}`}>{todayChange >= 0 ? "+" : ""}{fmt(todayChange)}% today</p>
-          <div className="flex items-center gap-1 justify-end mt-0.5">
-            {saving
+          <div className="flex items-center gap-2 justify-end mt-1">
+            {saveError
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-red-500" /><span className="text-[9px] text-red-500 font-mono" title={saveError}>save failed</span></>
+              : saving
               ? <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /><span className="text-[9px] text-yellow-600 font-mono">saving…</span></>
               : lastSaved
-              ? <><span className="w-1.5 h-1.5 rounded-full bg-green-500" /><span className="text-[9px] text-green-700 font-mono">saved {lastSaved.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</span></>
-              : null
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-green-600" /><span className="text-[9px] text-green-700 font-mono">saved {lastSaved.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</span></>
+              : <span className="text-[9px] text-[#555] font-mono">not saved yet</span>
             }
+            <button
+              onClick={manualSave}
+              disabled={saving}
+              title="Save now"
+              className={`text-[9px] font-mono px-2.5 py-1 rounded-lg border font-semibold transition-all ${saving ? "border-[#1a1a1a] text-[#333] cursor-not-allowed" : saveError ? "border-red-900/50 text-red-500 hover:border-red-700 hover:text-red-400" : "border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#555] active:scale-95"}`}
+            >{saving ? "…" : "↑ Save"}</button>
           </div>
         </div>
       </div>
@@ -1971,34 +2080,16 @@ Write 4 paragraphs: performance summary, what drove gains/losses, patterns, focu
                 <button
                   onClick={async () => {
                     try {
-                      const topicsNow = [...new Set(interests.flatMap(i => i.topics))];
-                      const edgesNow = (() => {
-                        const es = new Set(), arr = [];
-                        interests.forEach(it => {
-                          for (let a = 0; a < it.topics.length; a++) for (let b = a+1; b < it.topics.length; b++) {
-                            const k = [it.topics[a],it.topics[b]].sort().join("|||");
-                            if (!es.has(k)) { es.add(k); arr.push([it.topics[a],it.topics[b]]); }
-                          }
-                        });
-                        return arr;
-                      })();
+                      const topicsNow = [...new Set(interests.flatMap(i => i?.topics||[]))];
+                      const edgesNow = buildEdgeMaps(interests);
                       const ref = doc(db, "public", uid);
                       if (!interestEnabled) {
-                        // Merge into existing doc (creates it if needed)
-                        await setDoc(ref, {
-                          interestTopics: topicsNow,
-                          interestEdges: edgesNow,
-                          interestName: config.name,
-                          name: config.name,
-                          lastUpdated: Date.now()
-                        }, { merge: true });
-                        // Verify it landed
+                        await setDoc(ref, { interestTopics: topicsNow, interestEdges: edgesNow, interestName: config.name, name: config.name, lastUpdated: Date.now() }, { merge: true });
                         const snap = await getDoc(ref);
                         if (!snap.exists() || !snap.data().interestTopics?.length)
                           throw new Error("Firestore write failed — check your Firestore rules allow write to /public/{userId}");
                         setInterestEnabled(true);
                       } else {
-                        // Use updateDoc + deleteField to surgically remove only interest fields
                         await updateDoc(ref, {
                           interestTopics: deleteField(),
                           interestEdges:  deleteField(),
@@ -2657,6 +2748,64 @@ match /public/{userId} {
               {interestEnabled && interests.length <= 1 && (
                 <p className="text-xs text-[#666] text-center py-2">Add at least 2 videos in Interests tab first</p>
               )}
+            </Card>
+
+            {/* ── Interest Bento (Settings copy) ── */}
+            <Card>
+              <h2 className="font-semibold text-white text-sm flex items-center gap-2 mb-1">
+                <span className="text-base">🕸️</span> Interest Web Card
+              </h2>
+              <p className="text-xs text-[#888] mb-4 leading-relaxed">Share your live interest graph as an embeddable bento card — separate from the chart widget.</p>
+              <div className="flex items-center justify-between bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 mb-3">
+                <div>
+                  <p className="text-sm text-[#f0f0f0] font-medium">Enable public interest web</p>
+                  <p className="text-xs text-[#888] mt-0.5">{interestEnabled ? "Publicly viewable" : "Private"}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const topicsNow = [...new Set(interests.flatMap(i => i?.topics||[]))];
+                      const edgesNow  = buildEdgeMaps(interests);
+                      if (!interestEnabled) {
+                        await setDoc(doc(db,"public",uid),{ interestTopics:topicsNow, interestEdges:edgesNow, interestName:config.name, lastUpdated:Date.now() },{ merge:true });
+                        setInterestEnabled(true);
+                      } else {
+                        const snap = await getDoc(doc(db,"public",uid));
+                        if (snap.exists()) {
+                          const d={...snap.data()}; delete d.interestTopics; delete d.interestEdges; delete d.interestName;
+                          await setDoc(doc(db,"public",uid), d);
+                        }
+                        setInterestEnabled(false);
+                      }
+                    } catch(e){ alert("Error: "+e.message); }
+                  }}
+                  className={`relative w-12 h-6 rounded-full transition-all duration-300 ${interestEnabled ? "bg-violet-600" : "bg-[#222]"}`}
+                ><span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${interestEnabled ? "translate-x-6" : "translate-x-0"}`} /></button>
+              </div>
+              {interestEnabled && interests.length > 1 && (
+                <div className="space-y-3">
+                  {[
+                    { label:"iframe embed", desc:"Paste into any website", code:`<iframe src="https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}" width="480" height="360" frameborder="0" style="border-radius:20px;border:1px solid #2a2a2a;background:#050505"></iframe>` },
+                    { label:"Canvas URL", desc:"Direct shareable link", code:`https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}` },
+                  ].map(({ label, desc, code }) => (
+                    <div key={label} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-[#bbb]">{label}</p>
+                        <button onClick={() => { navigator.clipboard.writeText(code); setInterestCopied(label+"s"); setTimeout(()=>setInterestCopied(""),2000); }}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-[#999] hover:text-white hover:border-[#444] transition-all">
+                          {interestCopied === label+"s" ? "✓ Copied!" : "Copy"}</button>
+                      </div>
+                      <p className="text-[10px] text-[#777] mb-2">{desc}</p>
+                      <code className="text-[9px] text-[#777] break-all leading-relaxed block font-mono">{code}</code>
+                    </div>
+                  ))}
+                  <a href={`https://entropyzero.vercel.app/interest-canvas.html?uid=${uid}`} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full text-xs text-[#888] border border-[#2a2a2a] rounded-xl py-2 hover:text-white hover:border-[#444] transition-all">
+                    ↗ Open live preview
+                  </a>
+                </div>
+              )}
+              {interests.length <= 1 && <p className="text-xs text-[#555] text-center py-1">Add at least 2 videos in Interests tab first</p>}
             </Card>
 
             <Card>
